@@ -15,5 +15,7 @@ int main(void)
 
 	std::cout << "Hello World #2\n";
 
+	std::cout << "Hello World #3\n";
+
 	return 0;
 }
