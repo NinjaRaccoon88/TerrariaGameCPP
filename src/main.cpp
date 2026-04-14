@@ -14,6 +14,10 @@ int main(void)
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(800, 450, "window name");
 	SetTargetFPS(60);
+	bool myOption = false;
+	int selectionOption = 0;
+	std::string resultMessage = "";
+	bool confirmed = false;
 
 #pragma region imgui
 	rlImGuiSetup(true);
@@ -59,6 +63,29 @@ int main(void)
 		{
 			std::cout << "Second Button\n";
 		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::Text("Second button hovered");
+			ImGui::EndTooltip();
+		}
+		ImGui::SameLine();
+		ImGui::Checkbox("Check", &myOption);
+		ImGui::Separator();
+		ImGui::Text("Choose between 2 options");
+		ImGui::RadioButton("Suicide", &selectionOption, 0);
+		ImGui::RadioButton("Kill Hank", &selectionOption, 1);
+		ImGui::BeginDisabled(confirmed);
+		if (ImGui::Button("Confirm") && !confirmed)
+		{
+			confirmed = true;
+			resultMessage = selectionOption == 0
+				? "You sacrificed yourself for the future!"
+				: "You killed Hank and destroyed all the human trust!";
+		}
+		ImGui::EndDisabled();
+		if (!resultMessage.empty())
+			ImGui::Text(resultMessage.c_str());
 #pragma region imgui windows
 		ImGui::Begin("Second Window"); // Second ImGui window
 #pragma endregion
