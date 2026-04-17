@@ -51,7 +51,8 @@ int main(void)
 		// Update...
 		
 		BeginDrawing();
-		ClearBackground(RAYWHITE);
+		ClearBackground(BLACK);
+
 
 #pragma region imgui
 		rlImGuiBegin();
@@ -74,8 +75,6 @@ int main(void)
 
 		EndDrawing();
 	}
-
-	CloseWindow();
 
 	closeGame();
 
