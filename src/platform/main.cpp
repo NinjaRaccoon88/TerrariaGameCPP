@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <iostream>
 #include <gameLayer/gameMain.h>
+#include <platform/asserts.h>
 
 #pragma region imgui
 #include "imgui.h"
