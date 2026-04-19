@@ -8,6 +8,7 @@
 struct GameData
 {
 	GameMap gameMap;
+	Camera2D camera;
 
 }gameData; // declares a variable called gameData of type GameData right here
 
@@ -27,6 +28,10 @@ bool initGame()
 	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::dirt;
 	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::dirt;
 
+	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
+	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
+	gameData.camera.zoom = 75.0f; // zoom level
+
 	return true;
 }
 
@@ -35,7 +40,20 @@ bool updateGame()
 	float deltaTime = GetFrameTime(); // time in seconds since last frame
 	if (deltaTime > 1.f / 5) { deltaTime = 1 / 5.f; } // clamps deltaTime to max 0.2 seconds
 
+	gameData.camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+
 	ClearBackground({ 75,75,150,255 });
+
+#pragma region Camera Movement
+	// Moves camera target in world space
+	if (IsKeyDown(KEY_LEFT)) gameData.camera.target.x -= 7.f * deltaTime;
+	if (IsKeyDown(KEY_RIGHT)) gameData.camera.target.x += 7.f * deltaTime;
+	if (IsKeyDown(KEY_UP)) gameData.camera.target.y -= 7.f * deltaTime;
+	if (IsKeyDown(KEY_DOWN)) gameData.camera.target.y += 7.f * deltaTime;
+
+#pragma endregion
+
+	BeginMode2D(gameData.camera); // everything drawn after this is affected by the camera
 
 	// nested loop visits every single block in map
 	for (int y = 0; y < gameData.gameMap.h; y++) // loop every row
@@ -48,7 +66,7 @@ bool updateGame()
 			// only draw if block is not air (no point drawing empty block obv)
 			if (b.type != Block::air)
 			{
-				float size = 32; // each block takes 32x32 pixels
+				float size = 1; // each block takes 1x1 pixels
 
 				// convert block coordinates to pixel position
 				float posX = x * size;
@@ -69,6 +87,9 @@ bool updateGame()
 			}
 		}
 	}
+
+	EndMode2D(); // stop camera rendering
+
 	return true;
 }
 
