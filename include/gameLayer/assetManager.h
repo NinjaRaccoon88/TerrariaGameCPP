@@ -3,7 +3,6 @@
 
 struct AssetManager
 {
-
 	Texture2D dirt = {};
 
 	void loadAll();
