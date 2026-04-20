@@ -59,6 +59,8 @@ struct Block
 		boneWordrobe,
 		boneBookShelf,
 		bonePlatform,
+		head,
+		skin,
 
 		BLOCKS_COUNT,
 

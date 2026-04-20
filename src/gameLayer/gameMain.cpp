@@ -26,8 +26,8 @@ bool initGame()
 	gameData.gameMap.getBlockUnsafe(1, 1).type = Block::boneBricks;
 	gameData.gameMap.getBlockUnsafe(2, 2).type = Block::sandChest;
 	gameData.gameMap.getBlockUnsafe(3, 3).type = Block::table;
-	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::wordrobe;
-	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::blueRubyBlock;
+	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::skin;
+	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::head;
 
 	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
 	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
