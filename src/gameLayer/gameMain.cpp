@@ -4,6 +4,7 @@
 #include <fstream>
 #include <gameLayer/assetManager.h>
 #include <gameLayer/gameMap.h>
+#include <gameLayer/helper.h>
 
 struct GameData
 {
@@ -22,11 +23,11 @@ bool initGame()
 
 	// Spawning some test blocks to see how it works
 	gameData.gameMap.getBlockUnsafe(0, 0).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(1, 1).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(2, 2).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(3, 3).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::dirt;
+	gameData.gameMap.getBlockUnsafe(1, 1).type = Block::boneBricks;
+	gameData.gameMap.getBlockUnsafe(2, 2).type = Block::sandChest;
+	gameData.gameMap.getBlockUnsafe(3, 3).type = Block::table;
+	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::wordrobe;
+	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::blueRubyBlock;
 
 	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
 	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
@@ -66,19 +67,14 @@ bool updateGame()
 			// only draw if block is not air (no point drawing empty block obv)
 			if (b.type != Block::air)
 			{
-				float size = 1; // each block takes 1x1 pixels
-
-				// convert block coordinates to pixel position
-				float posX = x * size;
-				float posY = y * size;
-
 				DrawTexturePro(
-					assetManager.dirt, // texture to draw
-					Rectangle{ 0.f, 0.f, (float)assetManager.dirt.width,
-					(float)assetManager.dirt.height }, // rectangle uses the whole texture
+					assetManager.textures, // texture to draw
+
+					// source - picks the correct tile from the atlas
+					getTextureAtlas(b.type, 0, 32,32),
 
 					// destination rectangle - where and how big :D 
-					{ posX, posY, size, size }, 
+					{ (float)x, (float)y, 1, 1},
 
 					{ 0,0 }, // origin/pivot point for rotation (top-left corner)
 					0.0f, // rotation in degrees
