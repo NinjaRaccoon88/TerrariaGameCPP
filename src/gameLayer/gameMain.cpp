@@ -11,6 +11,9 @@ struct GameData
 	GameMap gameMap;
 	Camera2D camera;
 
+	//TEMPORARY
+	int selectedBlock = Block::skin;
+
 }gameData; // declares a variable called gameData of type GameData right here
 
 AssetManager assetManager;
@@ -54,6 +57,37 @@ bool updateGame()
 
 #pragma endregion
 
+	Vector2 worldPos = GetScreenToWorld2D(GetMousePosition(), gameData.camera);
+	int blockX = (int)floor(worldPos.x);
+	int blockY = (int)floor(worldPos.y);
+
+	if (IsKeyDown(KEY_ONE))
+	{
+		gameData.selectedBlock = Block::skin;
+	}
+	if (IsKeyDown(KEY_TWO))
+	{
+		gameData.selectedBlock = Block::head;
+	}
+
+
+	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+	{
+		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
+		if (b)
+		{
+			*b = {};
+		}
+	}
+	if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+	{
+		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
+		if (b)
+		{
+			b->type = gameData.selectedBlock;
+		}
+	}
+	
 	BeginMode2D(gameData.camera); // everything drawn after this is affected by the camera
 
 	// nested loop visits every single block in map
@@ -83,6 +117,15 @@ bool updateGame()
 			}
 		}
 	}
+	// draw selected block
+	DrawTexturePro(
+		assetManager.frame,
+		{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
+		{ (float)blockX, (float)blockY, 1, 1 }, // dest
+		{ 0,0 }, // origin (top-left corner)
+		0.0f, // rotation
+		WHITE // tint
+		);
 
 	EndMode2D(); // stop camera rendering
 
