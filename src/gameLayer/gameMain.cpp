@@ -5,6 +5,7 @@
 #include <gameLayer/assetManager.h>
 #include <gameLayer/gameMap.h>
 #include <gameLayer/helper.h>
+#include <raymath.h>
 
 struct GameData
 {
@@ -12,7 +13,7 @@ struct GameData
 	Camera2D camera;
 
 	//TEMPORARY
-	int selectedBlock = Block::skin;
+	int selectedBlock = Block::leaves;
 
 }gameData; // declares a variable called gameData of type GameData right here
 
@@ -22,7 +23,15 @@ bool initGame()
 {
 	assetManager.loadAll();
 
-	gameData.gameMap.create(30, 10); // Create the game map
+	gameData.gameMap.create(700, 500); // Create the game map
+
+	for (int i = 0; i < 700; i++)
+	{
+		for (int j = 0; j < 500; j++)
+		{
+			gameData.gameMap.getBlockUnsafe(i, j).type = Block::stone;
+		}
+	}
 
 	// Spawning some test blocks to see how it works
 	gameData.gameMap.getBlockUnsafe(0, 0).type = Block::dirt;
@@ -57,17 +66,22 @@ bool updateGame()
 
 #pragma endregion
 
+	// Converts mouse position from screen pixles to world coordinates
+	// accounts for the camera position, zoom and offset.
 	Vector2 worldPos = GetScreenToWorld2D(GetMousePosition(), gameData.camera);
+
+	// Converts world position to block grid coord
+	// floor rounds down so holding a cursor anywhere inside a block selects that block
 	int blockX = (int)floor(worldPos.x);
 	int blockY = (int)floor(worldPos.y);
 
 	if (IsKeyDown(KEY_ONE))
 	{
-		gameData.selectedBlock = Block::skin;
+		gameData.selectedBlock = Block::leaves;
 	}
 	if (IsKeyDown(KEY_TWO))
 	{
-		gameData.selectedBlock = Block::head;
+		gameData.selectedBlock = Block::woodLog;
 	}
 
 
@@ -90,10 +104,41 @@ bool updateGame()
 	
 	BeginMode2D(gameData.camera); // everything drawn after this is affected by the camera
 
+	// converts top-left corner of the screen to world coordinates
+	// tells us where the camera can see from on the top-left
+	Vector2 topLeftView = GetScreenToWorld2D
+	(
+		{ 0,0 },
+		gameData.camera
+	);
+
+	// converts bottom-right corner of the screen to world coordinates
+	// tells us where the camera can see from on the right-bottom
+	Vector2 bottomRightView = GetScreenToWorld2D
+	(
+		{(float)GetScreenWidth(), 
+		(float)GetScreenHeight()}, 
+		gameData.camera
+	);
+
+	// Convert world view bounds to block grid coordinates
+	// -1/+1 add a small buffer so blocks at the very edge don't pop in/out
+	int startXView = (int)floorf(topLeftView.x - 1);
+	int endXView = (int)ceilf(bottomRightView.x + 1);
+	int startYView = (int)floorf(topLeftView.y - 1);
+	int endYView = (int)ceilf(bottomRightView.y + 1);
+
+	// clamps view bounds to stay inside actual map boundaries
+	// prevents trying to draw blocks that don't exist outside the map
+	startXView = Clamp(startXView, 0, gameData.gameMap.w - 1);
+	endXView = Clamp(endXView, 0, gameData.gameMap.w - 1);
+	startYView = Clamp(startYView, 0, gameData.gameMap.h - 1);
+	endYView = Clamp(endYView, 0, gameData.gameMap.h - 1);
+
 	// nested loop visits every single block in map
-	for (int y = 0; y < gameData.gameMap.h; y++) // loop every row
+	for (int y = startYView; y <= endYView; y++) // loop every row
 	{
-		for (int x = 0; x < gameData.gameMap.w; x++) // loop every column
+		for (int x = startXView; x < endXView; x++) // loop every column
 		{
 			// gets reference to the block at x,y
 			auto& b = gameData.gameMap.getBlockUnsafe(x, y);
@@ -126,6 +171,8 @@ bool updateGame()
 		0.0f, // rotation
 		WHITE // tint
 		);
+
+	DrawFPS(10, 10);
 
 	EndMode2D(); // stop camera rendering
 
