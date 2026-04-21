@@ -146,24 +146,82 @@ bool updateGame()
 			// only draw if block is not air (no point drawing empty block obv)
 			if (b.type != Block::air)
 			{
-				DrawTexturePro(
-					assetManager.textures, // texture to draw
+				Rectangle sourceRect = getTextureAtlas(b.type, 0, 32, 32);
 
-					// source - picks the correct tile from the atlas
-					getTextureAtlas(b.type, 0, 32,32),
+				if (b.type == Block::woodLog)
+				{
+					// Checking for the block above (y - 1)
+					Block* above = gameData.gameMap.getBlockSafe(x, y - 1);
 
-					// destination rectangle - where and how big :D 
-					{ (float)x, (float)y, 1, 1},
+					// Checking for the block below (y + 1)
+					Block* below = gameData.gameMap.getBlockSafe(x, y + 1);
 
-					{ 0,0 }, // origin/pivot point for rotation (top-left corner)
-					0.0f, // rotation in degrees
-					WHITE // tint (WHITE - texture draw with no color change)
-				);
+					// Checking for the block on the left (x - 1)
+					Block* left = gameData.gameMap.getBlockSafe(x - 1, y);
+
+					// Checking for the block on the right (x + 1)
+					Block* right = gameData.gameMap.getBlockSafe(x + 1, y);
+
+					// Bool for leaves
+					bool leafAbove = above && above->type == Block::leaves;
+					bool logBelow = below && below->type == Block::woodLog;
+					bool leafLeft = left && left->type == Block::leaves;
+					bool leafRight = right && right->type == Block::leaves;
+					bool logAbove = above && above->type == Block::woodLog;
+
+					// Fucking 8 if statements upcoming, hardcoding is a way to go!
+					// also picking the rigth order was pain in the ass 
+
+					// if we have another log below us, place regular wood Log
+					if (leafLeft && leafRight && !logBelow && !logAbove) // most specific first
+						sourceRect = getTextureAtlas(5, 0, 32, 32); // surrounded by leaves
+					else if (leafLeft && leafRight)
+						sourceRect = getTextureAtlas(1, 0, 32, 32); // leaves both sides
+					else if (leafLeft)
+						sourceRect = getTextureAtlas(3, 0, 32, 32); // leaf left only
+					else if (leafRight)
+						sourceRect = getTextureAtlas(2, 0, 32, 32); // leaf right only
+					else if (!logBelow && !logAbove)
+						sourceRect = getTextureAtlas(7, 0, 32, 32); // completely isolated stump
+					else if (!logBelow)
+						sourceRect = getTextureAtlas(4, 0, 32, 32); // Stump with log above
+					else if (!logAbove)
+						sourceRect = getTextureAtlas(6, 0, 32, 32); // top of tree, no leaves
+					else if (logBelow)
+						sourceRect = getTextureAtlas(0, 0, 32, 32); // regular log
+
+					// Drawing
+					DrawTexturePro
+					(
+						assetManager.trees,
+						sourceRect, // source
+						{ (float)x, (float)y, 1,1 }, // dest
+						{ 0,0 }, // origin/pivot point for rotation (top - left corner)
+						0.0f, // rotation in degrees
+						WHITE // tint (WHITE - texture draw with no color change)
+					);
+				}
+				else {
+					DrawTexturePro(
+						assetManager.textures, // texture to draw
+
+						// source - picks the correct tile from the atlas
+						sourceRect,
+
+						// destination rectangle - where and how big :D 
+						{ (float)x, (float)y, 1, 1 },
+
+						{ 0,0 }, // origin/pivot point for rotation (top-left corner)
+						0.0f, // rotation in degrees
+						WHITE // tint (WHITE - texture draw with no color change)
+					);
+				}
 			}
 		}
-	}
+	};
 	// draw selected block
-	DrawTexturePro(
+	DrawTexturePro
+		(
 		assetManager.frame,
 		{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
 		{ (float)blockX, (float)blockY, 1, 1 }, // dest

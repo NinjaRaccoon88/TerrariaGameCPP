@@ -10,7 +10,7 @@ void GameMap::create(int w, int h)
 	this->h = h; // store height
 
 	for (auto& e : mapData) { e = {}; } // loops every block and resets it to default (clears)
-
+	
 }
 
 // crashing if you go out of bounds, you when you're sure the coord are valid
