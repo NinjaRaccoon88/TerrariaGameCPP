@@ -168,6 +168,7 @@ bool updateGame()
 					bool leafLeft = left && left->type == Block::leaves;
 					bool leafRight = right && right->type == Block::leaves;
 					bool logAbove = above && above->type == Block::woodLog;
+					bool leafBelow = below && below->type == Block::leaves;
 
 					// Fucking 8 if statements upcoming, hardcoding is a way to go!
 					// also picking the rigth order was pain in the ass 
@@ -185,7 +186,7 @@ bool updateGame()
 						sourceRect = getTextureAtlas(7, 0, 32, 32); // completely isolated stump
 					else if (!logBelow)
 						sourceRect = getTextureAtlas(4, 0, 32, 32); // Stump with log above
-					else if (!logAbove)
+					else if (!logAbove && !leafBelow)
 						sourceRect = getTextureAtlas(6, 0, 32, 32); // top of tree, no leaves
 					else if (logBelow)
 						sourceRect = getTextureAtlas(0, 0, 32, 32); // regular log
