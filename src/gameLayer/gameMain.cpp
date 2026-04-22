@@ -6,6 +6,7 @@
 #include <gameLayer/gameMap.h>
 #include <gameLayer/helper.h>
 #include <raymath.h>
+#include <gameLayer/randomStuff.h>
 
 struct GameData
 {
