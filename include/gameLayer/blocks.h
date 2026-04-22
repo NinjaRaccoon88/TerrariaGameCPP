@@ -62,8 +62,40 @@ struct Block
 		head,
 		skin,
 
-		BLOCKS_COUNT,
+		BLOCKS_COUNT
 
+	};
+
+	std::uint16_t type = 0;
+};
+
+struct Wall
+{
+	enum
+	{
+		air = 0,
+		dirtWall,
+		stoneWall,
+		woodWall,
+		sandStoneWall,
+		brickWall,
+		glassWall,
+		copperBlockWall,
+		silverBlockWall,
+		goldBlockWall,
+		snowWall,
+		sandWall,
+		stoneBricksWall,
+		rubyBlockWall,
+		heroglyphWall,
+		blueRubyWall,
+		plankedWall,
+		snowBrickWall,
+		boneBrickWall,
+		headWall,
+		skinWall,
+
+		WALL_COUNT
 	};
 
 	std::uint16_t type = 0;

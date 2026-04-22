@@ -10,4 +10,7 @@ void AssetManager::loadAll()
 
 	// Importing tree variants texture
 	trees = LoadTexture(RESOURCES_PATH "treetextures.png");
+
+	// Importing texture with wall variants
+	walls = LoadTexture(RESOURCES_PATH "texturesWithBackgroundVersion.png");
 }

@@ -14,6 +14,7 @@ struct GameData
 
 	//TEMPORARY
 	int selectedBlock = Block::leaves;
+	int selectedWall = Wall::skinWall;
 
 }gameData; // declares a variable called gameData of type GameData right here
 
@@ -40,6 +41,9 @@ bool initGame()
 	gameData.gameMap.getBlockUnsafe(3, 3).type = Block::table;
 	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::skin;
 	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::head;
+	gameData.gameMap.getWallUnsafe(6, 6).type = Wall::headWall;
+	gameData.gameMap.getWallUnsafe(7, 7).type = Wall::headWall;
+	gameData.gameMap.getWallUnsafe(8, 8).type = Wall::headWall;
 
 	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
 	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
@@ -83,7 +87,14 @@ bool updateGame()
 	{
 		gameData.selectedBlock = Block::woodLog;
 	}
-
+	if (IsKeyDown(KEY_THREE))
+	{
+		gameData.selectedWall = Wall::silverBlockWall;
+	}
+	if (IsKeyDown(KEY_FOUR))
+	{
+		gameData.selectedWall = Wall::snowWall;
+	}
 
 	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 	{
@@ -101,7 +112,26 @@ bool updateGame()
 			b->type = gameData.selectedBlock;
 		}
 	}
+	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+	{
+		auto b = gameData.gameMap.getWallSafe(blockX, blockY);
+		if (b)
+		{
+			*b = {};
+		}
+	}
+	if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
+	{
+		auto b = gameData.gameMap.getWallSafe(blockX, blockY);
+		if (b)
+		{
+			b->type = gameData.selectedWall;
+		}
+	}
 	
+	// temporarily add this inside updateGame() to see the values
+	DrawText(TextFormat("Selected Wall: %d", gameData.selectedWall), 10, 30, 20, RED);
+
 	BeginMode2D(gameData.camera); // everything drawn after this is affected by the camera
 
 	// converts top-left corner of the screen to world coordinates
@@ -134,6 +164,36 @@ bool updateGame()
 	endXView = Clamp(endXView, 0, gameData.gameMap.w - 1);
 	startYView = Clamp(startYView, 0, gameData.gameMap.h - 1);
 	endYView = Clamp(endYView, 0, gameData.gameMap.h - 1);
+
+	// nested loop visits every single WALL block in map
+	for (int y = startYView; y <= endYView; y++) // loop every row first
+	{
+		for (int x = startXView; x < endXView; x++) // loop every column
+		{
+			// gets reference to the WALL block in map
+			auto& b = gameData.gameMap.getWallUnsafe(x, y);
+
+			// only draw if block is not air (no point drawing empty block)
+			if (b.type != Wall::air)
+			{
+				// I have no idea why (-3) but if it works - it works
+				// I added 2 new blocks to the texture and there is air block
+				// so maybe I need to do -3 for those 3 blocks, welp
+				Rectangle sourceRect = getTextureAtlas(b.type - 3 + Block::BLOCKS_COUNT, 0, 32, 32);
+
+				// Drawing
+				DrawTexturePro
+				(
+					assetManager.walls,
+					sourceRect, // source
+					{ (float)x, (float)y, 1,1 }, // dest
+					{ 0,0 }, // origin/pivot point for rotation (top - left corner)
+					0.0f, // rotation in degrees
+					WHITE // tint (WHITE - texture draw with no color change)
+				);
+			}
+		}
+	}
 
 	// nested loop visits every single block in map
 	for (int y = startYView; y <= endYView; y++) // loop every row
@@ -230,8 +290,6 @@ bool updateGame()
 		0.0f, // rotation
 		WHITE // tint
 		);
-
-	DrawFPS(10, 10);
 
 	EndMode2D(); // stop camera rendering
 

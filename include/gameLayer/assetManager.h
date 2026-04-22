@@ -9,5 +9,7 @@ struct AssetManager
 
 	Texture2D trees = {}; // declaring trees and init to empty values
 
+	Texture2D walls = {}; // declaring wall textures and init to empty values
+
 	void loadAll();
 };
