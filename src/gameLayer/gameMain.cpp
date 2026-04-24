@@ -128,9 +128,10 @@ bool updateGame()
 	if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
 	{
 		auto b = gameData.gameMap.getWallSafe(blockX, blockY);
-		if (b)
+		if (b && b->type != gameData.selectedWall) // only place if different block
 		{
 			b->type = gameData.selectedWall;
+			b->variation = getRandomInt(rng, 0, 3); // picks 0, 1,2 or 3 randomly
 		}
 	}
 	
@@ -184,7 +185,7 @@ bool updateGame()
 				// I have no idea why (-3) but if it works - it works
 				// I added 2 new blocks to the texture and there is air block
 				// so maybe I need to do -3 for those 3 blocks, welp
-				Rectangle sourceRect = getTextureAtlas(b.type - 3 + Block::BLOCKS_COUNT, 0, 32, 32);
+				Rectangle sourceRect = getTextureAtlas(b.type - 3 + Block::BLOCKS_COUNT, b.variation, 32, 32);
 
 				// Drawing
 				DrawTexturePro
@@ -240,21 +241,21 @@ bool updateGame()
 
 					// if we have another log below us, place regular wood Log
 					if (leafLeft && leafRight && !logBelow && !logAbove) // most specific first
-						sourceRect = getTextureAtlas(5, 0, 32, 32); // surrounded by leaves
+						sourceRect = getTextureAtlas(5, b.variation, 32, 32); // surrounded by leaves
 					else if (leafLeft && leafRight)
-						sourceRect = getTextureAtlas(1, 0, 32, 32); // leaves both sides
+						sourceRect = getTextureAtlas(1, b.variation, 32, 32); // leaves both sides
 					else if (leafLeft)
-						sourceRect = getTextureAtlas(3, 0, 32, 32); // leaf left only
+						sourceRect = getTextureAtlas(3, b.variation, 32, 32); // leaf left only
 					else if (leafRight)
-						sourceRect = getTextureAtlas(2, 0, 32, 32); // leaf right only
+						sourceRect = getTextureAtlas(2, b.variation, 32, 32); // leaf right only
 					else if (!logBelow && !logAbove)
-						sourceRect = getTextureAtlas(7, 0, 32, 32); // completely isolated stump
+						sourceRect = getTextureAtlas(7, b.variation, 32, 32); // completely isolated stump
 					else if (!logBelow)
-						sourceRect = getTextureAtlas(4, 0, 32, 32); // Stump with log above
+						sourceRect = getTextureAtlas(4, b.variation, 32, 32); // Stump with log above
 					else if (!logAbove && !leafBelow)
-						sourceRect = getTextureAtlas(6, 0, 32, 32); // top of tree, no leaves
+						sourceRect = getTextureAtlas(6, b.variation, 32, 32); // top of tree, no leaves
 					else if (logBelow)
-						sourceRect = getTextureAtlas(0, 0, 32, 32); // regular log
+						sourceRect = getTextureAtlas(0, b.variation, 32, 32); // regular log
 
 					// Drawing
 					DrawTexturePro
