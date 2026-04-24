@@ -7,6 +7,14 @@
 #include <gameLayer/helper.h>
 #include <raymath.h>
 #include <gameLayer/randomStuff.h>
+#include <gameLayer/worldGenerator.h>
+
+#pragma region imgui
+#include "imgui.h"
+#include "rlImGui.h"
+#include "imguiThemes.h"
+#include "ImGuiStyle.h"
+#pragma endregion
 
 struct GameData
 {
@@ -28,26 +36,8 @@ bool initGame()
 {
 	assetManager.loadAll();
 
-	gameData.gameMap.create(700, 500); // Create the game map
+	generateWorld(gameData.gameMap);
 
-	for (int i = 0; i < 700; i++)
-	{
-		for (int j = 0; j < 500; j++)
-		{
-			gameData.gameMap.getBlockUnsafe(i, j).type = Block::stone;
-		}
-	}
-
-	// Spawning some test blocks to see how it works
-	gameData.gameMap.getBlockUnsafe(0, 0).type = Block::dirt;
-	gameData.gameMap.getBlockUnsafe(1, 1).type = Block::boneBricks;
-	gameData.gameMap.getBlockUnsafe(2, 2).type = Block::sandChest;
-	gameData.gameMap.getBlockUnsafe(3, 3).type = Block::table;
-	gameData.gameMap.getBlockUnsafe(4, 4).type = Block::skin;
-	gameData.gameMap.getBlockUnsafe(5, 5).type = Block::head;
-	gameData.gameMap.getWallUnsafe(6, 6).type = Wall::headWall;
-	gameData.gameMap.getWallUnsafe(7, 7).type = Wall::headWall;
-	gameData.gameMap.getWallUnsafe(8, 8).type = Wall::headWall;
 
 	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
 	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
@@ -67,10 +57,11 @@ bool updateGame()
 
 #pragma region Camera Movement
 	// Moves camera target in world space
-	if (IsKeyDown(KEY_LEFT)) gameData.camera.target.x -= 7.f * deltaTime;
-	if (IsKeyDown(KEY_RIGHT)) gameData.camera.target.x += 7.f * deltaTime;
-	if (IsKeyDown(KEY_UP)) gameData.camera.target.y -= 7.f * deltaTime;
-	if (IsKeyDown(KEY_DOWN)) gameData.camera.target.y += 7.f * deltaTime;
+	static float CAMERA_SPEED = 7.0f;
+	if (IsKeyDown(KEY_LEFT)) gameData.camera.target.x -= CAMERA_SPEED * deltaTime;
+	if (IsKeyDown(KEY_RIGHT)) gameData.camera.target.x += CAMERA_SPEED * deltaTime;
+	if (IsKeyDown(KEY_UP)) gameData.camera.target.y -= CAMERA_SPEED * deltaTime;
+	if (IsKeyDown(KEY_DOWN)) gameData.camera.target.y += CAMERA_SPEED * deltaTime;
 
 #pragma endregion
 
@@ -237,7 +228,7 @@ bool updateGame()
 					bool leafBelow = below && below->type == Block::leaves;
 
 					// Fucking 8 if statements upcoming, hardcoding is a way to go!
-					// also picking the rigth order was pain in the ass 
+					// also picking the rigth order is pain in the ass
 
 					// if we have another log below us, place regular wood Log
 					if (leafLeft && leafRight && !logBelow && !logAbove) // most specific first
@@ -256,7 +247,7 @@ bool updateGame()
 						sourceRect = getTextureAtlas(6, b.variation, 32, 32); // top of tree, no leaves
 					else if (logBelow)
 						sourceRect = getTextureAtlas(0, b.variation, 32, 32); // regular log
-
+					
 					// Drawing
 					DrawTexturePro
 					(
@@ -298,6 +289,13 @@ bool updateGame()
 		);
 
 	EndMode2D(); // stop camera rendering
+
+	ImGui::Begin("Game Controll");
+
+	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 10, 150);
+	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 30);
+
+	ImGui::End();
 
 	return true;
 }
