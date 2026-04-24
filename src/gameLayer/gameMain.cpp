@@ -21,6 +21,9 @@ struct GameData
 
 AssetManager assetManager;
 
+//TEMPORARY
+std::ranlux24_base rng(std::random_device{}()); // seeded with a truly random value
+
 bool initGame()
 {
 	assetManager.loadAll();
@@ -108,9 +111,10 @@ bool updateGame()
 	if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
 	{
 		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
-		if (b)
+		if (b && b->type != gameData.selectedBlock) // only place if different block
 		{
 			b->type = gameData.selectedBlock;
+			b->variation = getRandomInt(rng, 0, 3); // picks 0,1,2 or 3 randomly
 		}
 	}
 	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -207,7 +211,7 @@ bool updateGame()
 			// only draw if block is not air (no point drawing empty block obv)
 			if (b.type != Block::air)
 			{
-				Rectangle sourceRect = getTextureAtlas(b.type, 0, 32, 32);
+				Rectangle sourceRect = getTextureAtlas(b.type, b.variation, 32, 32);
 
 				if (b.type == Block::woodLog)
 				{
