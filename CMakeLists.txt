@@ -36,6 +36,7 @@ project(mygame)
 add_subdirectory(thirdparty/raylib-5.0)
 add_subdirectory(thirdparty/imgui-docking)
 add_subdirectory(thirdparty/rlImGui)
+add_subdirectory(thirdparty/FastNoiseSIMD)
 
 
 # MY_SOURCES is defined to be a list of all the source files for my game 
@@ -78,11 +79,12 @@ if(MSVC) # If using the VS compiler...
 
 endif()
 
-target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/FastNoiseSIMD")
 
 
 
 # Link raylib library statically, Here wou would add other libraries!
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE 
-	raylib_static imgui rlimgui
+	raylib_static imgui rlimgui fastNoiseSIMD
 )

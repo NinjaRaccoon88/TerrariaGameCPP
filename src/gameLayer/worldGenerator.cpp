@@ -1,5 +1,6 @@
 #include <gameLayer/worldGenerator.h>
 #include <gameLayer/randomStuff.h>
+#include <FastNoiseSIMD/FastNoiseSIMD.h>
 
 void generateWorld(GameMap& gameMap, int seed)
 {
