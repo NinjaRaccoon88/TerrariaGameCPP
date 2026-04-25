@@ -14,23 +14,28 @@ void generateWorld(GameMap& gameMap, int seed)
 	// create rng seeded with given seed
 	std::ranlux24_base rng(seed); // same seed = same world every time
 
+	int surfaceHeight = h - (dirtSize + stoneSize); // start at normal surface level
+
 	for (int x = 0; x < w; x++) // loop every column (width)
 	{
+		// Randomly nudge surface up or down each column
+		surfaceHeight += getRandomInt(rng, -1, 1); // -1, 0 or +1 each step
+
 		for (int y = 0; y < h; y++) // loop every row (height)
 		{
 			Block b; // create empty block, default = air
 
-			if (y < h - (dirtSize + stoneSize))
+			if (y < surfaceHeight)
 			{
 				// air
 			}
 			else
-			if (y == h - (dirtSize + stoneSize))
+			if (y == surfaceHeight)
 			{
 				b.type = Block::grassBlock; // grass...
 			}
 			else
-			if (y < h - stoneSize)
+			if (y < surfaceHeight + stoneSize)
 			{
 				b.type = Block::dirt; // dirt O_O
 			}
