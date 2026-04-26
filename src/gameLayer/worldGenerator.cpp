@@ -9,134 +9,56 @@ void generateWorld(GameMap& gameMap, int seed)
 
 	gameMap.create(w, h);
 
-	std::ranlux24_base rng(seed); // rng seeded - same seed = same world
+	std::ranlux24_base rng(seed++); // rng seeded - same seed = same world
 
+	// Create two separate noise generators - for dirt and for stone layers
+	// unique_ptr automatically frees memory when it goes out of scope
+	std::unique_ptr<FastNoiseSIMD> dirtNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
+	std::unique_ptr<FastNoiseSIMD> stoneNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 
-	// how many columns to keep moving in the SAME direction before changing
-	// starts at a random value between 5-40 columns
-	int keepDirectionTimeDirt = getRandomInt(rng, 5, 40);
-	// current movement direction: fast down, slow down, flat, slow up and fast up
-	int directionDirt = getRandomInt(rng, -2, 2);
+	// give each generator a different seed so they produce diff noise patterns
+	dirtNoiseGenerator->SetSeed(seed++);
+	stoneNoiseGenerator->SetSeed(seed++);
 
-	// same two variables but for stone layer independently
-	int keepDirectionTimeStone = getRandomInt(rng, 5, 40);
-	int directionStone = getRandomInt(rng, -2, 2);
+	// SimplexFractal = smooth organic looking noise (faster than Perlin)
+	dirtNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
+	dirtNoiseGenerator->SetFractalOctaves(1); // simple smooth waves - good for surface
+	dirtNoiseGenerator->SetFrequency(0.02); // how zoomed in the noise is, higher = more chaos
 
-	int dirtHeight = 70; // starting Y position of the dirt surface
-	int stoneHeight = 90; // starting Y position of the stone layer
+	stoneNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
+	stoneNoiseGenerator->SetFractalOctaves(4); // more detail layered on top of each other
+	stoneNoiseGenerator->SetFrequency(0.01); // lower frequency = slower/wider waves
+
+	// allocate arrays to store one noise value per column
+	float* dirtNoise = FastNoiseSIMD::GetEmptySet(w);
+	float* stoneNoise = FastNoiseSIMD::GetEmptySet(w);
+
+	// fill both arrays with noise values from all w columns at once
+	dirtNoiseGenerator->FillNoiseSet(dirtNoise, 0, 0, 0, w, 1, 1);
+	stoneNoiseGenerator->FillNoiseSet(stoneNoise, 0, 0, 0, w, 1, 1);
+
+	// convert from [-1 1] to [0,1] cuz we need to use Lerp after which requires values 0-1
+	for (int i = 0; i < w; i++)
+	{
+		dirtNoise[i] = (dirtNoise[i] + 1) / 2;
+		stoneNoise[i] = (stoneNoise[i] + 1) / 2;
+	}
+
+	int dirtOffsetStart = -5; // minimum dirt thickness
+	int dirtOffsetEnd = 35; // maximum dirt thickness above stone
+
+	int stoneHeightStart = 80; // minimum depth of stone layer
+	int stoneHeightEnd = 170; // maximum depth of stone layer
 
 	for (int x = 0; x < w; x++) // move column by column across the map
 	{
+		// this is LERP formula: start + (end - start) * t
+		int stoneHeight = stoneHeightStart + (stoneHeightEnd - stoneHeightStart) * stoneNoise[x];
+		int dirtHeight = dirtOffsetStart + (dirtOffsetEnd - dirtOffsetStart) * dirtNoise[x];
 
-		// count down the timer for dirt duration
-		keepDirectionTimeDirt--;
-		if (keepDirectionTimeDirt <= 0)
-		{
-			// timer ran out - pick a new random direction and reset timer
-			keepDirectionTimeDirt = getRandomInt(rng, 5, 40);
-			directionDirt = getRandomInt(rng, -2, 2);
-		}
-
-		// direction -1 = slow downward movement
-		// only 25% chance to actually move, making it smooth
-		if (directionDirt == -1)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight--;
-			}
-		}
-		// direction -2 = fast downward movement
-		// two separate 25% chance = up to 2 steps down per column
-		else if (directionDirt == -2)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight--;
-			}
-
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight--;
-			}
-		}
-		// direction 1 = slow upward movement
-		else if (directionDirt == 1)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight++;
-			}
-		}
-		// direction 2 = fast upward movement
-	   // two separate 25% chances = up to 2 steps up per column
-		else if (directionDirt == 2)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight++;
-			}
-
-			if (getRandomChance(rng, 0.25))
-			{
-				dirtHeight++;
-			}
-		}
-
-		// clamp dirt height so terrain never goes too high or too low
-		if (dirtHeight < 50) { dirtHeight = 50; } // max mountain height
-		if (dirtHeight > 90) { dirtHeight = 90; } // min valley depth
-
-		//same code for stone
-		keepDirectionTimeStone--;
-		if (keepDirectionTimeStone <= 0)
-		{
-			keepDirectionTimeStone = getRandomInt(rng, 5, 40);
-			directionStone = getRandomInt(rng, -2, 2);
-		}
-
-		if (directionStone == -1)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight--;
-			}
-		}
-		else if (directionStone == -2)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight--;
-			}
-
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight--;
-			}
-		}
-		else if (directionStone == 1)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight++;
-			}
-		}
-		else if (directionStone == 2)
-		{
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight++;
-			}
-
-			if (getRandomChance(rng, 0.25))
-			{
-				stoneHeight++;
-			}
-		}
-
-		// clamp stone height within its own range
-		if (stoneHeight < 60) { stoneHeight = 60; }
-		if (stoneHeight > 120) { stoneHeight = 120; }
+		// dirt surface = stone surface minus the dirt thickness offset
+		// so dirt always sits a natural distance above stone
+		dirtHeight = stoneHeight - dirtHeight;
 
 		for (int y = 0; y < h; y++) // now fill this column top to bottom
 		{
@@ -160,4 +82,8 @@ void generateWorld(GameMap& gameMap, int seed)
 			gameMap.getBlockUnsafe(x, y) = b;
 		}
 	}
+
+	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
+	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
+	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
 }

@@ -39,7 +39,7 @@ bool initGame()
 	generateWorld(gameData.gameMap);
 
 
-	gameData.camera.target = { 0,0 }; // the point in the world the camera is looking at
+	gameData.camera.target = { 20 ,120 }; // the point in the world the camera is looking at
 	gameData.camera.rotation = 0.0f; // camera rotation in degrees (0 - no rotation obv)
 	gameData.camera.zoom = 75.0f; // zoom level
 
