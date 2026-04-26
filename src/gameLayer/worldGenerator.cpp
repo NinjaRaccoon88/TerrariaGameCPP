@@ -2,7 +2,13 @@
 #include <gameLayer/randomStuff.h>
 #include <FastNoiseSIMD/FastNoiseSIMD.h>
 
-void generateWorld(GameMap& gameMap, int seed)
+void generateWorld
+	(
+		GameMap& gameMap, int seed,
+		int dirtOffsetStart, int dirtOffsetEnd,
+		int stoneHeightStart, int stoneHeightEnd,
+		float dirtFrequency, float stoneFrequency
+	)
 {
 	const int w = 900;
 	const int h = 500;
@@ -44,11 +50,11 @@ void generateWorld(GameMap& gameMap, int seed)
 		stoneNoise[i] = (stoneNoise[i] + 1) / 2;
 	}
 
-	int dirtOffsetStart = -5; // minimum dirt thickness
-	int dirtOffsetEnd = 35; // maximum dirt thickness above stone
+	//int dirtOffsetStart = -5; // minimum dirt thickness
+	//int dirtOffsetEnd = 35; // maximum dirt thickness above stone
 
-	int stoneHeightStart = 80; // minimum depth of stone layer
-	int stoneHeightEnd = 170; // maximum depth of stone layer
+	//int stoneHeightStart = 80; // minimum depth of stone layer
+	//int stoneHeightEnd = 170; // maximum depth of stone layer
 
 	for (int x = 0; x < w; x++) // move column by column across the map
 	{

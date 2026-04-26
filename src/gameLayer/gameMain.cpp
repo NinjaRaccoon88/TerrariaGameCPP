@@ -21,6 +21,15 @@ struct GameData
 	GameMap gameMap;
 	Camera2D camera;
 
+	// worldGenerator variables
+	int seed = 1234;
+	int dirtOffsetStart = -5;
+	int dirtOffsetEnd = 35;
+	int stoneHeightStart = 80;
+	int stoneHeightEnd = 170;
+	float dirtFrequency = 0.02f;
+	float stoneFrequency = 0.01f;
+
 	//TEMPORARY
 	int selectedBlock = Block::leaves;
 	int selectedWall = Wall::skinWall;
@@ -36,7 +45,10 @@ bool initGame()
 {
 	assetManager.loadAll();
 
-	generateWorld(gameData.gameMap);
+	generateWorld(gameData.gameMap, gameData.seed,
+		gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
+		gameData.stoneHeightStart, gameData.stoneHeightEnd,
+		gameData.dirtFrequency, gameData.stoneFrequency);
 
 
 	gameData.camera.target = { 20 ,120 }; // the point in the world the camera is looking at
@@ -294,6 +306,27 @@ bool updateGame()
 
 	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 10, 150);
 	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 30);
+
+	ImGui::Separator();
+	ImGui::Text("World Generator");
+	ImGui::Separator();
+
+	ImGui::SliderInt("Dirt Offset Start", &gameData.dirtOffsetStart, -20, 0);
+	ImGui::SliderInt("Dirt Offset End", &gameData.dirtOffsetEnd, 10, 60);
+	ImGui::SliderInt("Stone Height Start", &gameData.stoneHeightStart, 40, 120);
+	ImGui::SliderInt("Stone Height End", &gameData.stoneHeightEnd, 100, 250);
+	ImGui::SliderFloat("Dirt Frequency", &gameData.dirtFrequency, 0.001f, 0.1f);
+	ImGui::SliderFloat("Stone Frequency", &gameData.stoneFrequency, 0.001f, 0.1f);
+	ImGui::SliderInt("Seed", &gameData.seed, 0, 99999);
+
+	if (ImGui::Button("Generate World"))
+	{
+		generateWorld(gameData.gameMap, gameData.seed,
+			gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
+			gameData.stoneHeightStart, gameData.stoneHeightEnd,
+			gameData.dirtFrequency, gameData.stoneFrequency);
+	}
+
 
 	ImGui::End();
 
