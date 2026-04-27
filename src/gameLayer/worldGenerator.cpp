@@ -32,10 +32,12 @@ void generateWorld
 	// unique_ptr automatically frees memory when it goes out of scope
 	std::unique_ptr<FastNoiseSIMD> dirtNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 	std::unique_ptr<FastNoiseSIMD> stoneNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
+	std::unique_ptr<FastNoiseSIMD> caveNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 
 	// give each generator a different seed so they produce diff noise patterns
 	dirtNoiseGenerator->SetSeed(seed++);
 	stoneNoiseGenerator->SetSeed(seed++);
+	caveNoiseGenerator->SetSeed(seed++);
 
 	// SimplexFractal = smooth organic looking noise (faster than Perlin)
 	dirtNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
@@ -45,6 +47,11 @@ void generateWorld
 	stoneNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
 	stoneNoiseGenerator->SetFractalOctaves(4); // more detail layered on top of each other
 	stoneNoiseGenerator->SetFrequency(stoneFrequency); // lower frequency = slower/wider waves
+
+	caveNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
+	caveNoiseGenerator->SetFractalOctaves(3);
+	// TODO: make this editable in ImGui
+	caveNoiseGenerator->SetFrequency(0.02f);
 
 	// allocate arrays to store one noise value per column
 	float* dirtNoise = FastNoiseSIMD::GetEmptySet(w);
@@ -60,6 +67,26 @@ void generateWorld
 		dirtNoise[i] = (dirtNoise[i] + 1) / 2;
 		stoneNoise[i] = (stoneNoise[i] + 1) / 2;
 	}
+
+	// allocate a FULL 2D array - w*h values instead of just w like terrain noise
+	// caves need every x,y position sampled unlike terrain which only needs one row
+	float* caveNoise = FastNoiseSIMD::GetEmptySet(w * h);
+
+	// fill the full 2D noise set - note w and h are swapped compared to terrain
+	caveNoiseGenerator->FillNoiseSet(caveNoise, 0, 0, 0, h, w, 1);
+
+	// convert from [-1 1] to [0,1]
+	for (int i = 0; i < w * h; i++)
+	{
+		caveNoise[i] = (caveNoise[i] + 1) / 2;
+	}
+
+	// lambda function - convenient shorthand to look up cave noise at any x,y position
+	// converts 2D coords to 1D array index using same formula as getBlockUnsafe()
+	auto getCaveNoise = [&](int x, int y)
+		{
+			return caveNoise[x + y * w];
+		};
 
 	//int dirtOffsetStart = -5; // minimum dirt thickness
 	//int dirtOffsetEnd = 35; // maximum dirt thickness above stone
@@ -143,6 +170,12 @@ void generateWorld
 				}
 			}
 
+			// carve out caves wherever noise is below thershold AND we're underground
+			if (getCaveNoise(x, y) < 0.20 && y > dirtHeight)
+			{
+				b.type = Block::air;
+			}
+
 			gameMap.getBlockUnsafe(x, y) = b;
 		}
 	}
@@ -150,4 +183,5 @@ void generateWorld
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
+	FastNoiseSIMD::FreeNoiseSet(caveNoise);
 }

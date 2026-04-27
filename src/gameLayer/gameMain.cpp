@@ -307,7 +307,7 @@ bool updateGame()
 	ImGui::Begin("Game Controll");
 
 	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 2, 150);
-	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 50);
+	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 200);
 
 	ImGui::Separator();
 	ImGui::Text("World Generator"); // Section header
