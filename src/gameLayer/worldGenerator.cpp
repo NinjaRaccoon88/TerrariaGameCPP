@@ -29,11 +29,11 @@ void generateWorld
 	// SimplexFractal = smooth organic looking noise (faster than Perlin)
 	dirtNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
 	dirtNoiseGenerator->SetFractalOctaves(1); // simple smooth waves - good for surface
-	dirtNoiseGenerator->SetFrequency(0.02); // how zoomed in the noise is, higher = more chaos
+	dirtNoiseGenerator->SetFrequency(dirtFrequency); // how zoomed in the noise is, higher = more chaos
 
 	stoneNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
 	stoneNoiseGenerator->SetFractalOctaves(4); // more detail layered on top of each other
-	stoneNoiseGenerator->SetFrequency(0.01); // lower frequency = slower/wider waves
+	stoneNoiseGenerator->SetFrequency(stoneFrequency); // lower frequency = slower/wider waves
 
 	// allocate arrays to store one noise value per column
 	float* dirtNoise = FastNoiseSIMD::GetEmptySet(w);

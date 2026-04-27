@@ -22,13 +22,13 @@ struct GameData
 	Camera2D camera;
 
 	// worldGenerator variables
-	int seed = 1234;
-	int dirtOffsetStart = -5;
-	int dirtOffsetEnd = 35;
-	int stoneHeightStart = 80;
-	int stoneHeightEnd = 170;
-	float dirtFrequency = 0.02f;
-	float stoneFrequency = 0.01f;
+	int seed = 1234; // same seed = same world every time
+	int dirtOffsetStart = -5; // minimum thickness of dirt layer above stone
+	int dirtOffsetEnd = 35; // maximum thickness of dirt layer above stone
+	int stoneHeightStart = 80; // shallowest point stone can start (close to surface)
+	int stoneHeightEnd = 170; // deepest point stone can start
+	float dirtFrequency = 0.02f; // how chaotic/smooth the dirt surface is
+	float stoneFrequency = 0.01f; // how chaotic/smooht the stone layer is
 
 	//TEMPORARY
 	int selectedBlock = Block::leaves;
@@ -45,6 +45,8 @@ bool initGame()
 {
 	assetManager.loadAll();
 
+	// pass all values from gameData into generateWorld
+	// so the world generates using whatever is stored in the struct
 	generateWorld(gameData.gameMap, gameData.seed,
 		gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
 		gameData.stoneHeightStart, gameData.stoneHeightEnd,
@@ -308,9 +310,10 @@ bool updateGame()
 	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 30);
 
 	ImGui::Separator();
-	ImGui::Text("World Generator");
+	ImGui::Text("World Generator"); // Section header
 	ImGui::Separator();
 
+	// sliders let you drag values in real time
 	ImGui::SliderInt("Dirt Offset Start", &gameData.dirtOffsetStart, -20, 0);
 	ImGui::SliderInt("Dirt Offset End", &gameData.dirtOffsetEnd, 10, 60);
 	ImGui::SliderInt("Stone Height Start", &gameData.stoneHeightStart, 40, 120);
@@ -319,6 +322,7 @@ bool updateGame()
 	ImGui::SliderFloat("Stone Frequency", &gameData.stoneFrequency, 0.001f, 0.1f);
 	ImGui::SliderInt("Seed", &gameData.seed, 0, 99999);
 
+	// clicking this regenerates the entire world using current slider values
 	if (ImGui::Button("Generate World"))
 	{
 		generateWorld(gameData.gameMap, gameData.seed,
