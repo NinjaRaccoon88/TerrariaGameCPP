@@ -27,8 +27,8 @@ struct GameData
 	int dirtOffsetEnd = 35; // maximum thickness of dirt layer above stone
 	int stoneHeightStart = 80; // shallowest point stone can start (close to surface)
 	int stoneHeightEnd = 170; // deepest point stone can start
-	float dirtFrequency = 0.02f; // how chaotic/smooth the dirt surface is
-	float stoneFrequency = 0.01f; // how chaotic/smooht the stone layer is
+	float dirtFrequency = 0.009f; // how chaotic/smooth the dirt surface is
+	float stoneFrequency = 0.006f; // how chaotic/smooht the stone layer is
 
 	//TEMPORARY
 	int selectedBlock = Block::leaves;
@@ -306,8 +306,8 @@ bool updateGame()
 
 	ImGui::Begin("Game Controll");
 
-	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 10, 150);
-	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 30);
+	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 2, 150);
+	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 50);
 
 	ImGui::Separator();
 	ImGui::Text("World Generator"); // Section header

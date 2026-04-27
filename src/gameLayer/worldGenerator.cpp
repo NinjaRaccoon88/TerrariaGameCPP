@@ -17,6 +17,17 @@ void generateWorld
 
 	std::ranlux24_base rng(seed++); // rng seeded - same seed = same world
 
+	// pick a random start position for the desert
+	// kept away from edges so desert never spawns right at the map border
+	int desertStart = getRandomInt(rng, 10, w - 210);
+
+	// desert is at least 100 blocks wide, up to 200 blocks wide
+	int desertEnd = desertStart + 100 + getRandomInt(rng, 0, 100);
+
+	// safety clamp - make sure desert doesn't go past map edge
+	if (desertEnd > w) { desertEnd = w; }
+
+
 	// Create two separate noise generators - for dirt and for stone layers
 	// unique_ptr automatically frees memory when it goes out of scope
 	std::unique_ptr<FastNoiseSIMD> dirtNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
@@ -58,6 +69,9 @@ void generateWorld
 
 	for (int x = 0; x < w; x++) // move column by column across the map
 	{
+		// simple bool - true if current x column falls within desert boundaries
+		bool inDesert = (x >= desertStart && x <= desertEnd);
+
 		// this is LERP formula: start + (end - start) * t
 		int stoneHeight = stoneHeightStart + (stoneHeightEnd - stoneHeightStart) * stoneNoise[x];
 		int dirtHeight = dirtOffsetStart + (dirtOffsetEnd - dirtOffsetStart) * dirtNoise[x];
@@ -66,23 +80,67 @@ void generateWorld
 		// so dirt always sits a natural distance above stone
 		dirtHeight = stoneHeight - dirtHeight;
 
+		// default block types for normal biomes
+		int dirtType = Block::dirt;
+		int grassType = Block::grassBlock;
+		int stoneType = Block::stone;
+
+		if (inDesert)
+		{
+			// desert replaces dirt with sand
+			dirtType = Block::sand;
+			// desert has no grass - sand goes all the way to surface
+			grassType = Block::sand;
+			// desert has sand stones instead of regular stone
+			stoneType = Block::sandStone;
+		}
+
 		for (int y = 0; y < h; y++) // now fill this column top to bottom
 		{
 			Block b; // default to air
 
 			if (y > dirtHeight) // below surface = dirt O_o
 			{
-				b.type = Block::dirt;
+				b.type = dirtType;
 			}
 
 			if (y == dirtHeight) // exactly at surface = grass obv :D 
 			{
-				b.type = Block::grassBlock;
+				b.type = grassType;
 			}
 
 			if (y > stoneHeight) // below stone line = stone
 			{
-				b.type = Block::stone;
+				b.type = stoneType;
+			}
+
+			if (inDesert)
+			{
+				// find the CENTER column of the desert
+				int desertMid = (desertStart + desertEnd) / 2; 
+
+				// half the total width of the desert
+				int desertHalfWidth = (desertEnd - desertStart) / 2;
+
+				// how far is current column from the center (always positive due to abs)
+				int distanceFromDesertMid = std::abs(x - desertMid);
+
+				// This gives a value from 0 at edge to 1 at center
+				// this creates a smoother gradient from edge to center
+				float desertDistance = 1 - distanceFromDesertMid / float(desertHalfWidth);
+
+				// where the triangle stone shape starts (just below surface stone)
+				int desertStoneStart = 10 + stoneHeight;
+				int desertStoneDepth = 20 + stoneHeight; // how deep the triangle goes
+
+				// this creates a pyramid/triangle shape when viewed from the side
+				int triangleStoneY = desertStoneStart + desertDistance * desertStoneDepth;
+				
+				// Apply stone if below the triangle
+				if (y > triangleStoneY)
+				{
+					b.type = Block::stone;
+				}
 			}
 
 			gameMap.getBlockUnsafe(x, y) = b;
