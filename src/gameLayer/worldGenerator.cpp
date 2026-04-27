@@ -171,7 +171,8 @@ void generateWorld
 			}
 
 			// carve out caves wherever noise is below thershold AND we're underground
-			if (getCaveNoise(x, y) < 0.20 && y > dirtHeight)
+			// 10 is an amount of buffer zone to prevent spawning caves right under grass block
+			if (getCaveNoise(x, y) < 0.275 && y > dirtHeight + 10)
 			{
 				b.type = Block::air;
 			}
