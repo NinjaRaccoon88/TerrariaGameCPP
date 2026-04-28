@@ -188,21 +188,21 @@ void generateWorld
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
 	FastNoiseSIMD::FreeNoiseSet(caveNoise);
 
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < 20; i++) // spawn 20 worms total
 	{
 		// picks a random starting point
 		// it's important for x and y to be floats
-		float x = getRandomInt(rng, 10, w - 10);
-		float y = getRandomInt(rng, 51, h - 10);
+		float x = getRandomInt(rng, 10, w - 10); // anywhere horizontally, avoid edges
+		float y = getRandomInt(rng, 51, h - 10); // underground only (51+ to stay below surface)
 
 		// initial movement direction (-1 to 1 range)
-		float dirX = (getRandomFloat(rng, -1, 1));
-		float dirY = (getRandomFloat(rng, -1, 1));
+		float dirX = (getRandomFloat(rng, -1, 1)); // negative = left, positive = right
+		float dirY = (getRandomFloat(rng, -1, 1)); // negative = up, positive = down
 
-		int wormLength = getRandomInt(rng, 200, 700);
-		float radius = 2.5f;
+		int wormLength = getRandomInt(rng, 200, 700); // how many steps worm takes
+		float radius = 2.5f; // tunnel width in blocks
 
-		int changeDirectionTime = getRandomInt(rng, 5, 20);
+		int changeDirectionTime = getRandomInt(rng, 5, 20); // how often worm changes direction
 
 		for (int j = 0; j < wormLength; j++)
 		{
