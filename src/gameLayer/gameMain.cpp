@@ -30,6 +30,10 @@ struct GameData
 	float dirtFrequency = 0.009f; // how chaotic/smooth the dirt surface is
 	float stoneFrequency = 0.006f; // how chaotic/smooht the stone layer is
 
+	float caveThreshold = 0.275f; // how many caves spawn
+	int surfaceBuffer = 10; // how deep before CAVE start
+	float caveFrequency = 0.02f; // cave size/shape
+
 	//TEMPORARY
 	int selectedBlock = Block::leaves;
 	int selectedWall = Wall::skinWall;
@@ -50,7 +54,9 @@ bool initGame()
 	generateWorld(gameData.gameMap, gameData.seed,
 		gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
 		gameData.stoneHeightStart, gameData.stoneHeightEnd,
-		gameData.dirtFrequency, gameData.stoneFrequency);
+		gameData.dirtFrequency, gameData.stoneFrequency,
+		gameData.caveThreshold, gameData.surfaceBuffer,
+		gameData.caveFrequency);
 
 
 	gameData.camera.target = { 20 ,120 }; // the point in the world the camera is looking at
@@ -320,6 +326,9 @@ bool updateGame()
 	ImGui::SliderInt("Stone Height End", &gameData.stoneHeightEnd, 100, 250);
 	ImGui::SliderFloat("Dirt Frequency", &gameData.dirtFrequency, 0.001f, 0.1f);
 	ImGui::SliderFloat("Stone Frequency", &gameData.stoneFrequency, 0.001f, 0.1f);
+	ImGui::SliderFloat("Cave Frequency", &gameData.caveFrequency, 0.001f, 0.1f);
+	ImGui::SliderInt("Surface Buffer (Cave)", &gameData.surfaceBuffer, 0, 20);
+	ImGui::SliderFloat("Cave Threshold", &gameData.caveThreshold, 0.1f, 0.4f);
 	ImGui::SliderInt("Seed", &gameData.seed, 0, 99999);
 
 	// clicking this regenerates the entire world using current slider values
@@ -328,7 +337,9 @@ bool updateGame()
 		generateWorld(gameData.gameMap, gameData.seed,
 			gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
 			gameData.stoneHeightStart, gameData.stoneHeightEnd,
-			gameData.dirtFrequency, gameData.stoneFrequency);
+			gameData.dirtFrequency, gameData.stoneFrequency,
+			gameData.caveThreshold, gameData.surfaceBuffer,
+			gameData.caveFrequency);
 	}
 
 

@@ -7,7 +7,9 @@ void generateWorld
 		GameMap& gameMap, int seed,
 		int dirtOffsetStart, int dirtOffsetEnd,
 		int stoneHeightStart, int stoneHeightEnd,
-		float dirtFrequency, float stoneFrequency
+		float dirtFrequency, float stoneFrequency,
+		float caveThreshold, int surfaceBuffer,
+		float caveFrequency
 	)
 {
 	const int w = 900;
@@ -50,8 +52,8 @@ void generateWorld
 
 	caveNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
 	caveNoiseGenerator->SetFractalOctaves(3);
-	// TODO: make this editable in ImGui
-	caveNoiseGenerator->SetFrequency(0.02f);
+	// TODO: make this editable in ImGui (done)
+	caveNoiseGenerator->SetFrequency(caveFrequency);
 
 	// allocate arrays to store one noise value per column
 	float* dirtNoise = FastNoiseSIMD::GetEmptySet(w);
@@ -172,7 +174,7 @@ void generateWorld
 
 			// carve out caves wherever noise is below thershold AND we're underground
 			// 10 is an amount of buffer zone to prevent spawning caves right under grass block
-			if (getCaveNoise(x, y) < 0.275 && y > dirtHeight + 10)
+			if (getCaveNoise(x, y) < caveThreshold && y > dirtHeight + surfaceBuffer)
 			{
 				b.type = Block::air;
 			}
