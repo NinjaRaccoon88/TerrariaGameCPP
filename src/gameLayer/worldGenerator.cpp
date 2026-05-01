@@ -187,87 +187,102 @@ void generateWorld
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
 	FastNoiseSIMD::FreeNoiseSet(caveNoise);
+	
+	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
 
-	for (int i = 0; i < 20; i++) // spawn 20 worms total
-	{
-		// picks a random starting point
-		// it's important for x and y to be floats
-		float x = getRandomInt(rng, 10, w - 10); // anywhere horizontally, avoid edges
-		float y = getRandomInt(rng, 51, h - 10); // underground only (51+ to stay below surface)
-
-		// initial movement direction (-1 to 1 range)
-		float dirX = (getRandomFloat(rng, -1, 1)); // negative = left, positive = right
-		float dirY = (getRandomFloat(rng, -1, 1)); // negative = up, positive = down
-
-		int wormLength = getRandomInt(rng, 200, 700); // how many steps worm takes
-		float radius = 2.5f; // tunnel width in blocks
-
-		int changeDirectionTime = getRandomInt(rng, 5, 20); // how often worm changes direction
-
-		for (int j = 0; j < wormLength; j++) // each step of the worm's journey
+	auto spawnWorm = [&](float startX, float startY, float maxLength, float maxR)
 		{
-			// dig a circle around current position
-			// ceil rounds UP so we always cover the full radius
-			int intRadius = std::ceil(radius);
+			// picks a random starting point
+			// it's important for x and y to be floats
+			float x = startX;
+			float y = startY;
 
-			// loop every block in a square around the current position
-			for (int ox = -intRadius; ox <= intRadius; ox++) // offset x
+			// initial movement direction (-1 to 1 range)
+			float dirX = (getRandomFloat(rng, -1, 1)); // negative = left, positive = right
+			float dirY = (getRandomFloat(rng, -1, 1)); // negative = up, positive = down
+
+			int wormLength = (int)maxLength;
+			float radius = 2.5f;
+
+			int changeDirectionTime = getRandomInt(rng, 5, 20); // how often worm changes direction
+			
+			for (int j = 0; j < wormLength; j++) // each step of the worm's journey
 			{
-				// loop every block in a square around current position
-				for (int oy = -intRadius; oy <= intRadius; oy++) // offset y
+				// dig a circle around current position
+				// ceil rounds UP so we always cover the full radius
+				int intRadius = std::ceil(radius);
+
+				// loop every block in a square around the current position
+				for (int ox = -intRadius; ox <= intRadius; ox++) // offset x
 				{
-					// calculate distance from center using Pythagorean theorem
-					float distSq = ox * ox + oy * oy;
-
-					// only dig if we're inside the circle
-					if (distSq <= radius * radius)
+					// loop every block in a square around current position
+					for (int oy = -intRadius; oy <= intRadius; oy++) // offset y
 					{
-						int digX = x + ox; // actual world position to dig
-						int digY = y + oy;
+						// calculate distance from center using Pythagorean theorem
+						// a^2 + b^2 = c^2
+						float distSq = ox * ox + oy * oy;
 
-						auto b = gameMap.getBlockSafe(digX, digY);
-						if (b) 
+						// only dig if we're inside the circle
+						if (distSq <= radius * radius)
 						{
-							b->type = Block::rubyBlock;
+							int digX = x + ox; // actual world position to dig
+							int digY = y + oy;
+
+							auto b = gameMap.getBlockSafe(digX, digY);
+							if (b)
+							{
+								b->type = Block::rubyBlock;
+							}
 						}
 					}
 				}
+
+				changeDirectionTime--;
+				if (changeDirectionTime <= 0) // timer ran out, time to maybe change direction
+				{
+					changeDirectionTime = getRandomInt(rng, 5, 20); // reset timer
+
+					if (getRandomChance(rng, 0.7)) // 70% chance - gentle turn
+					{
+						float keepFactor = 0.8; // keep 80% of old direction
+
+						// blend old direction with new random direction
+						// big chance we keep a very similar direction
+						// 80% old + 20% new = subtle turn
+						dirX = dirX * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
+						dirY = dirY * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
+					}
+					else // else 30% chance - sharp turn
+					{
+						float keepFactor = 0.2; // keep only 20% of old direction
+
+						//big chance we keep a very similar direction
+						// 20% old + 80% new = dramatic direction change
+						dirX = dirX * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
+						dirY = dirY * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
+					}
+				}
+				// Move worm position in current direction
+				x += dirX * 1.5f;
+				y += dirY * 1.5f;
+
+				// randomly wobble the radius so tunnel width varies naturally
+				radius += (getRandomFloat(rng, -0.2, 0.2)); // slightly wider or narrower each step
+
+				// clamps the radius between 2.2 and 8.5 so tunnel never disappears or gets huge
+				radius = std::clamp(radius, 2.2f, maxR);
 			}
 
-			changeDirectionTime--;
-			if (changeDirectionTime <= 0) // timer ran out, time to maybe change direction
-			{
-				changeDirectionTime = getRandomInt(rng, 5, 20); // reset timer
+		};
 
-				if (getRandomChance(rng, 0.7)) // 70% chance - gentle turn
-				{
-					float keepFactor = 0.8; // keep 80% of old direction
-
-					// blend old direction with new random direction
-					// big chance we keep a very similar direction
-					// 80% old + 20% new = subtle turn
-					dirX = dirX * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
-					dirY = dirY * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
-				}
-				else // else 30% chance - sharp turn
-				{
-					float keepFactor = 0.2; // keep only 20% of old direction
-
-					//big chance we keep a very similar direction
-					// 20% old + 80% new = dramatic direction change
-					dirX = dirX * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
-					dirY = dirY * keepFactor + (getRandomFloat(rng, -1, 1)) * (1.f - keepFactor);
-				}
-			}
-			// Move worm position in current direction
-			x += dirX * 1.5f;
-			y += dirY * 1.5f;
-
-			// randomly wobble the radius so tunnel width varies naturally
-			radius += (getRandomFloat(rng, -0.2, 0.2)); // slightly wider or narrower each step
-
-			// clamps the radius between 2.2 and 8.5 so tunnel never disappears or gets huge
-			radius = std::clamp(radius, 2.2f, 8.5f);
-		}
+	for (int i = 0; i < 20; i++) // spawn 20 worms total
+	{
+		spawnWorm
+		(
+			getRandomInt(rng, 10, w - 10),
+			getRandomInt(rng, 51, h - 10),
+			getRandomInt(rng, 200, 700),
+			8.5f
+		);
 	}
 }
