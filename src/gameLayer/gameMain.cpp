@@ -20,7 +20,8 @@ struct GameData
 {
 	GameMap gameMap;
 	Camera2D camera;
-
+	int creativeSelectedBlock = Block::dirt;
+	
 	// worldGenerator variables
 	int seed = 1234; // same seed = same world every time
 	int dirtOffsetStart = -5; // minimum thickness of dirt layer above stone
@@ -35,12 +36,13 @@ struct GameData
 	float caveFrequency = 0.02f; // cave size/shape
 
 	//TEMPORARY
-	int selectedBlock = Block::leaves;
 	int selectedWall = Wall::skinWall;
 
 }gameData; // declares a variable called gameData of type GameData right here
 
 AssetManager assetManager;
+
+bool showImgui = false;
 
 //TEMPORARY
 std::ranlux24_base rng(std::random_device{}()); // seeded with a truly random value
@@ -75,6 +77,10 @@ bool updateGame()
 
 	ClearBackground({ 75,75,150,255 });
 
+	// toggles ImGui debug panel ON/OFF with F10
+	// showImGui flips betwen true and false each press
+	if (IsKeyPressed(KEY_F10)) { showImgui = !showImgui; }
+
 #pragma region Camera Movement
 	// Moves camera target in world space
 	static float CAMERA_SPEED = 7.0f;
@@ -94,58 +100,56 @@ bool updateGame()
 	int blockX = (int)floor(worldPos.x);
 	int blockY = (int)floor(worldPos.y);
 
-	if (IsKeyDown(KEY_ONE))
+	// prevents selectedBlock from going out of bounds
+	// if somehow it goes negative, clamp back to 0
+	if (gameData.creativeSelectedBlock < 0) { gameData.creativeSelectedBlock = 0; }
+	
+	// if it goes past the last block type, clamp to the last valid block
+	if (gameData.creativeSelectedBlock >= Block::BLOCKS_COUNT) 
 	{
-		gameData.selectedBlock = Block::leaves;
-	}
-	if (IsKeyDown(KEY_TWO))
-	{
-		gameData.selectedBlock = Block::woodLog;
-	}
-	if (IsKeyDown(KEY_THREE))
-	{
-		gameData.selectedWall = Wall::silverBlockWall;
-	}
-	if (IsKeyDown(KEY_FOUR))
-	{
-		gameData.selectedWall = Wall::snowWall;
+		gameData.creativeSelectedBlock = Block::BLOCKS_COUNT - 1;
 	}
 
-	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+	// only process mouse block placement when ImGui panel is hidden
+	// prevents accidentally placing/destroying blocks while clicking ImGui buttons
+	if (!showImgui)
 	{
-		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
-		if (b)
+		if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) // destroy block
 		{
-			*b = {};
+			auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
+			if (b)
+			{
+				*b = {};
+			}
+		}
+		if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) // place block
+		{
+			auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
+			if (b && b->type != gameData.creativeSelectedBlock) // only place if different block
+			{
+				b->type = gameData.creativeSelectedBlock;
+				b->variation = getRandomInt(rng, 0, 3); // picks 0,1,2 or 3 randomly
+			}
+		}
+		if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) // place wall
+		{
+			auto b = gameData.gameMap.getWallSafe(blockX, blockY);
+			if (b)
+			{
+				*b = {};
+			}
+		}
+		if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
+		{
+			auto b = gameData.gameMap.getWallSafe(blockX, blockY);
+			if (b && b->type != gameData.selectedWall) // only place if different block
+			{
+				b->type = gameData.selectedWall;
+				b->variation = getRandomInt(rng, 0, 3); // picks 0, 1,2 or 3 randomly
+			}
 		}
 	}
-	if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-	{
-		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
-		if (b && b->type != gameData.selectedBlock) // only place if different block
-		{
-			b->type = gameData.selectedBlock;
-			b->variation = getRandomInt(rng, 0, 3); // picks 0,1,2 or 3 randomly
-		}
-	}
-	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-	{
-		auto b = gameData.gameMap.getWallSafe(blockX, blockY);
-		if (b)
-		{
-			*b = {};
-		}
-	}
-	if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
-	{
-		auto b = gameData.gameMap.getWallSafe(blockX, blockY);
-		if (b && b->type != gameData.selectedWall) // only place if different block
-		{
-			b->type = gameData.selectedWall;
-			b->variation = getRandomInt(rng, 0, 3); // picks 0, 1,2 or 3 randomly
-		}
-	}
-	
+
 	// temporarily add this inside updateGame() to see the values
 	DrawText(TextFormat("Selected Wall: %d", gameData.selectedWall), 10, 30, 20, RED);
 
@@ -310,40 +314,84 @@ bool updateGame()
 
 	EndMode2D(); // stop camera rendering
 
-	ImGui::Begin("Game Controll");
-
-	ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 2, 150);
-	ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 200);
-
-	ImGui::Separator();
-	ImGui::Text("World Generator"); // Section header
-	ImGui::Separator();
-
-	// sliders let you drag values in real time
-	ImGui::SliderInt("Dirt Offset Start", &gameData.dirtOffsetStart, -20, 0);
-	ImGui::SliderInt("Dirt Offset End", &gameData.dirtOffsetEnd, 10, 60);
-	ImGui::SliderInt("Stone Height Start", &gameData.stoneHeightStart, 40, 120);
-	ImGui::SliderInt("Stone Height End", &gameData.stoneHeightEnd, 100, 250);
-	ImGui::SliderFloat("Dirt Frequency", &gameData.dirtFrequency, 0.001f, 0.1f);
-	ImGui::SliderFloat("Stone Frequency", &gameData.stoneFrequency, 0.001f, 0.1f);
-	ImGui::SliderFloat("Cave Frequency", &gameData.caveFrequency, 0.001f, 0.1f);
-	ImGui::SliderInt("Surface Buffer (Cave)", &gameData.surfaceBuffer, 0, 20);
-	ImGui::SliderFloat("Cave Threshold", &gameData.caveThreshold, 0.1f, 0.4f);
-	ImGui::SliderInt("Seed", &gameData.seed, 0, 99999);
-
-	// clicking this regenerates the entire world using current slider values
-	if (ImGui::Button("Generate World"))
+	// only render ImGui panel when F10 has been pressed to show it
+	if (showImgui)
 	{
-		generateWorld(gameData.gameMap, gameData.seed,
-			gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
-			gameData.stoneHeightStart, gameData.stoneHeightEnd,
-			gameData.dirtFrequency, gameData.stoneFrequency,
-			gameData.caveThreshold, gameData.surfaceBuffer,
-			gameData.caveFrequency);
+		ImGui::Begin("Game Controll");
+
+		ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 2, 150);
+		ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 200);
+
+		ImGui::Separator();
+		ImGui::Text("World Generator"); // Section header
+		ImGui::Separator();
+
+		// sliders let you drag values in real time
+		ImGui::SliderInt("Dirt Offset Start", &gameData.dirtOffsetStart, -20, 0);
+		ImGui::SliderInt("Dirt Offset End", &gameData.dirtOffsetEnd, 10, 60);
+		ImGui::SliderInt("Stone Height Start", &gameData.stoneHeightStart, 40, 120);
+		ImGui::SliderInt("Stone Height End", &gameData.stoneHeightEnd, 100, 250);
+		ImGui::SliderFloat("Dirt Frequency", &gameData.dirtFrequency, 0.001f, 0.1f);
+		ImGui::SliderFloat("Stone Frequency", &gameData.stoneFrequency, 0.001f, 0.1f);
+		ImGui::SliderFloat("Cave Frequency", &gameData.caveFrequency, 0.001f, 0.1f);
+		ImGui::SliderInt("Surface Buffer (Cave)", &gameData.surfaceBuffer, 0, 20);
+		ImGui::SliderFloat("Cave Threshold", &gameData.caveThreshold, 0.1f, 0.4f);
+		ImGui::SliderInt("Seed", &gameData.seed, 0, 99999);
+
+		// clicking this regenerates the entire world using current slider values
+		if (ImGui::Button("Generate World"))
+		{
+			generateWorld(gameData.gameMap, gameData.seed,
+				gameData.dirtOffsetStart, gameData.dirtOffsetEnd,
+				gameData.stoneHeightStart, gameData.stoneHeightEnd,
+				gameData.dirtFrequency, gameData.stoneFrequency,
+				gameData.caveThreshold, gameData.surfaceBuffer,
+				gameData.caveFrequency);
+		}
+
+		ImGui::Separator();
+
+		// loop thru every block type and display as clickable image button
+		for (int i = 0; i < Block::BLOCKS_COUNT; i++)
+		{
+			// get the texture atlas rectangle for this block
+			auto atlas = getTextureAtlas(i, 0, 32, 32);
+
+			// convert pixel coordinates to UV coordinates
+			// ImGui requires UV coords instead of pixel coords for image buttons
+			atlas.x /= assetManager.textures.width; // pixel X -> UV X
+			atlas.width /= assetManager.textures.width; // pixel width -> UV width
+			atlas.y /= assetManager.textures.height; // pixel Y -> UV Y
+			atlas.height /= assetManager.textures.height; // pixel height -> UV height
+
+			// PushID/PopID prevents ImGui confusing buttons with the same label
+			// since all buttons are named "##block" we need unique IDs per button
+			ImGui::PushID(i);
+
+			// cast texture id to ImTextureID format that ImGui understands
+			ImTextureID tex = &assetManager.textures.id;
+
+			// render clickable 35x35 image button showing the block texture
+			if (ImGui::ImageButton("##block", tex,
+				{ 35,35 }, // size of a button
+				{ atlas.x, atlas.y }, // uv0 - top left of atlas region
+				{ atlas.x + atlas.width, atlas.y + atlas.height })) // uv1 - bottom right
+			{
+				gameData.creativeSelectedBlock = i; // set selected block when clicked
+			}
+
+			ImGui::PopID(); // restore previous ID
+
+			// put 10 buttons per row then wrap to next line
+			// SameLine puts next button on same row
+			// When (i+1) is divisible by 10, don't call SameLine - new row starts
+			if ((i + 1) % 10 != 0)
+			{
+				ImGui::SameLine();
+			}
+		}
+		ImGui::End();
 	}
-
-
-	ImGui::End();
 
 	return true;
 }

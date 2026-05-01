@@ -189,20 +189,21 @@ void generateWorld
 	FastNoiseSIMD::FreeNoiseSet(caveNoise);
 	
 	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
-
+	// lambda that captures everything from generateWorld scope by refernece [&]
+	// parameters: starting position, max tunnel length, max tunnel radius
 	auto spawnWorm = [&](float startX, float startY, float maxLength, float maxR)
 		{
 			// picks a random starting point
 			// it's important for x and y to be floats
-			float x = startX;
-			float y = startY;
+			float x = startX; // worm current X position
+			float y = startY; // worm current Y position
 
 			// initial movement direction (-1 to 1 range)
 			float dirX = (getRandomFloat(rng, -1, 1)); // negative = left, positive = right
 			float dirY = (getRandomFloat(rng, -1, 1)); // negative = up, positive = down
 
-			int wormLength = (int)maxLength;
-			float radius = 2.5f;
+			int wormLength = (int)maxLength; // how many steps this worm takes total
+			float radius = 2.5f; // starting tunnel width
 
 			int changeDirectionTime = getRandomInt(rng, 5, 20); // how often worm changes direction
 			
@@ -231,7 +232,7 @@ void generateWorld
 							auto b = gameMap.getBlockSafe(digX, digY);
 							if (b)
 							{
-								b->type = Block::rubyBlock;
+								b->type = Block::air; // DEBUG PURPOSES - PLACE AIR WHEN FINISHED
 							}
 						}
 					}
@@ -279,10 +280,10 @@ void generateWorld
 	{
 		spawnWorm
 		(
-			getRandomInt(rng, 10, w - 10),
-			getRandomInt(rng, 51, h - 10),
-			getRandomInt(rng, 200, 700),
-			8.5f
+			getRandomInt(rng, 10, w - 10), // random X avoiding map edges
+			getRandomInt(rng, 51, h - 10), // random Y underground (51+ avoid surface)
+			getRandomInt(rng, 200, 500), // random length between 200-500 steps
+			8.5f // max radius - tunnels never wider than 8.5 blocks
 		);
 	}
 }
