@@ -309,7 +309,8 @@ bool updateGame()
 		{ (float)blockX, (float)blockY, 1, 1 }, // dest
 		{ 0,0 }, // origin (top-left corner)
 		0.0f, // rotation
-		WHITE // tint
+			// TODO: check if we holding CTRL to show the current block we are about to place
+		WHITE // tint ({ 255, 255, 255, 128 } - WHITE but with 128 alpha = 50% opacity)
 		);
 
 	EndMode2D(); // stop camera rendering
