@@ -150,9 +150,6 @@ bool updateGame()
 		}
 	}
 
-	// temporarily add this inside updateGame() to see the values
-	DrawText(TextFormat("Selected Wall: %d", gameData.selectedWall), 10, 30, 20, RED);
-
 	BeginMode2D(gameData.camera); // everything drawn after this is affected by the camera
 
 	// converts top-left corner of the screen to world coordinates
