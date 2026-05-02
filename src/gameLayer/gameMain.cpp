@@ -301,17 +301,36 @@ bool updateGame()
 			}
 		}
 	};
+	// TODO: When holding CTRL show the current block you are about to place
+	// else
 	// draw selected block
-	DrawTexturePro
-		(
-		assetManager.frame,
-		{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
-		{ (float)blockX, (float)blockY, 1, 1 }, // dest
-		{ 0,0 }, // origin (top-left corner)
-		0.0f, // rotation
-			// TODO: check if we holding CTRL to show the current block we are about to place
-		WHITE // tint ({ 255, 255, 255, 128 } - WHITE but with 128 alpha = 50% opacity)
+
+	if (IsKeyDown(KEY_LEFT_CONTROL))
+	{
+		// always draw the selected block preview at 50% opacity
+		DrawTexturePro(
+			assetManager.textures,
+			getTextureAtlas(gameData.creativeSelectedBlock, 0, 32, 32),
+			{ (float)blockX, (float)blockY, 1, 1 },
+			{ 0,0 },
+			0.0f,
+			{ 255, 255, 255, 128 } // 50% opacity preview
 		);
+	}
+	else 
+	{
+		DrawTexturePro
+		(
+			assetManager.frame,
+			{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
+			{ (float)blockX, (float)blockY, 1, 1 }, // dest
+			{ 0,0 }, // origin (top-left corner)
+			0.0f, // rotation
+			// TODO: check if we holding CTRL to show the current block we are about to place
+			WHITE // tint ({ 255, 255, 255, 128 } - WHITE but with 128 alpha = 50% opacity)
+		);
+	}
+	
 
 	EndMode2D(); // stop camera rendering
 
