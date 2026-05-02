@@ -307,30 +307,45 @@ bool updateGame()
 
 	if (IsKeyDown(KEY_LEFT_CONTROL))
 	{
-		// always draw the selected block preview at 50% opacity
-		DrawTexturePro(
-			assetManager.textures,
-			getTextureAtlas(gameData.creativeSelectedBlock, 0, 32, 32),
-			{ (float)blockX, (float)blockY, 1, 1 },
-			{ 0,0 },
-			0.0f,
-			{ 255, 255, 255, 128 } // 50% opacity preview
-		);
+		auto b = gameData.gameMap.getBlockSafe(blockX, blockY);
+		// only show preview if the block at cursor is air
+
+		if (b && b->type == Block::air)
+		{
+			// always draw the selected block preview at 50% opacity
+			DrawTexturePro(
+				assetManager.textures,
+				getTextureAtlas(gameData.creativeSelectedBlock, 0, 32, 32),
+				{ (float)blockX, (float)blockY, 1, 1 },
+				{ 0,0 },
+				0.0f,
+				{ 255, 255, 255, 128 } // 50% opacity preview
+			);
+		}
+		else
+		{
+			DrawTexturePro
+			(
+				assetManager.frame,
+				{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
+				{ (float)blockX, (float)blockY, 1, 1 }, // dest
+				{ 0,0 }, // origin (top-left corner)
+				0.0f, // rotation
+				// TODO: check if we holding CTRL to show the current block we are about to place
+				WHITE // tint ({ 255, 255, 255, 128 } - WHITE but with 128 alpha = 50% opacity)
+			);
+		}
 	}
-	else 
+	else
 	{
-		DrawTexturePro
-		(
+		// not holding ctrl - always show frame
+		DrawTexturePro(
 			assetManager.frame,
-			{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height }, // source
-			{ (float)blockX, (float)blockY, 1, 1 }, // dest
-			{ 0,0 }, // origin (top-left corner)
-			0.0f, // rotation
-			// TODO: check if we holding CTRL to show the current block we are about to place
-			WHITE // tint ({ 255, 255, 255, 128 } - WHITE but with 128 alpha = 50% opacity)
+			{ 0,0, (float)assetManager.frame.width, (float)assetManager.frame.height },
+			{ (float)blockX, (float)blockY, 1, 1 },
+			{ 0,0 }, 0.0f, WHITE
 		);
 	}
-	
 
 	EndMode2D(); // stop camera rendering
 
