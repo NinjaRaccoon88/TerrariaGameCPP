@@ -301,7 +301,7 @@ bool updateGame()
 			}
 		}
 	};
-	// TODO: When holding CTRL show the current block you are about to place
+	// TODO: When holding CTRL show the current block you are about to place           DONE BTW
 	// else
 	// draw selected block
 

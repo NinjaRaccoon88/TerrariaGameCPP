@@ -69,6 +69,14 @@ struct Block
 	std::uint16_t type = 0; // type of a block
 
 	std::uint8_t variation = 0; // variation of the block
+
+	void sanitize()
+	{
+		if (type >= BLOCKS_COUNT)
+		{
+			type = 0;
+		}
+	}
 };
 
 struct Wall
