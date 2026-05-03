@@ -67,3 +67,11 @@ Wall* Structure::getWallSafe(int x, int y)
 	// returns a POINTER, caller must check for nullptr before using
 	return &wallData[x + y * w];
 }
+
+void Structure::copyFromMap(GameMap& map, Vector2 start, Vector2 end)
+{
+	// TODO: shit tons of IF checks to make sure everything works just fine
+
+
+}
+

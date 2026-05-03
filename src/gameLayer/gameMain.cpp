@@ -22,6 +22,9 @@ struct GameData
 	Camera2D camera;
 	int creativeSelectedBlock = Block::dirt;
 	
+	Vector2 selectionStart = {};
+	Vector2 selectionEnd = {};
+
 	// worldGenerator variables
 	int seed = 1234; // same seed = same world every time
 	int dirtOffsetStart = -5; // minimum thickness of dirt layer above stone
@@ -108,6 +111,23 @@ bool updateGame()
 	if (gameData.creativeSelectedBlock >= Block::BLOCKS_COUNT) 
 	{
 		gameData.creativeSelectedBlock = Block::BLOCKS_COUNT - 1;
+	}
+
+	if (showImgui)
+	{
+		// When we press "1" or "2" - adjust the START or the END to the currently selected block
+		if (IsKeyPressed(KEY_ONE)) { gameData.selectionStart = Vector2{ (float)blockX, (float)blockY }; }
+		if (IsKeyPressed(KEY_TWO)) { gameData.selectionEnd = Vector2{ (float)blockX, (float)blockY }; }
+
+		// making sure the START is not smaller than END
+		if (gameData.selectionStart.x > gameData.selectionEnd.x)
+		{
+			std::swap(gameData.selectionStart.x, gameData.selectionEnd.x);
+		}
+		if (gameData.selectionStart.y > gameData.selectionEnd.y)
+		{
+			std::swap(gameData.selectionStart.y, gameData.selectionEnd.y);
+		}
 	}
 
 	// only process mouse block placement when ImGui panel is hidden
@@ -342,6 +362,21 @@ bool updateGame()
 			{ (float)blockX, (float)blockY, 1, 1 },
 			{ 0,0 }, 0.0f, WHITE
 		);
+	}
+
+	// show the structure selection
+	if (showImgui)
+	{
+		Rectangle rect;
+		rect.x = gameData.selectionStart.x;
+		rect.y = gameData.selectionStart.y;
+		rect.width = gameData.selectionEnd.x - gameData.selectionStart.x;
+		rect.height = gameData.selectionEnd.y - gameData.selectionStart.y;
+
+		rect.width++;
+		rect.height++;
+
+		DrawRectangleLinesEx(rect, 0.1f, {20, 101, 250, 145});
 	}
 
 	EndMode2D(); // stop camera rendering

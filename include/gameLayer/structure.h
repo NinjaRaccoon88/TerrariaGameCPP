@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
-#include <gameLayer/blocks.h>
+#include "blocks.h"
+
+#include "gameMap.h"
+#include <raylib.h>
 
 struct Structure
 {
@@ -25,4 +28,11 @@ struct Structure
 
 	// get wall by position, safe version that returns nullptr if out of bounds
 	Wall* getWallSafe(int x, int y);
+
+	// it will copy a structure from the map
+	void copyFromMap(GameMap& map, Vector2 start, Vector2 end); 
+
+	// it will take a content from a structure and paste it into the map
+	void pasteIntoMap(GameMap& map, Vector2 start); 
+
 };
