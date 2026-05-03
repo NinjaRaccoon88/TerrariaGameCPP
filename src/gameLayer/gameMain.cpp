@@ -26,9 +26,9 @@ struct GameData
 	
 	Vector2 selectionStart = {}; // start coordinate (block)
 	Vector2 selectionEnd = {}; // end coordinate (block)
-	Structure copyStructure; // this copies the structure
+	Structure copyStructure; // this holds currently copied structure
 
-	char saveName[100] = {}; // init to 0
+	char saveName[100] = {}; // file name buffer for save/load, init to 0
 
 	// worldGenerator variables
 	int seed = 1234; // same seed = same world every time
@@ -379,7 +379,7 @@ bool updateGame()
 		);
 	}
 
-	// show the structure selection
+	// show the structure selection by drawing blue selection rectangle in world space
 	if (showImgui)
 	{
 		Rectangle rect;
@@ -388,9 +388,10 @@ bool updateGame()
 		rect.width = gameData.selectionEnd.x - gameData.selectionStart.x;
 		rect.height = gameData.selectionEnd.y - gameData.selectionStart.y;
 
-		rect.width++;
-		rect.height++;
+		rect.width++; // +1 so selection includes the end block
+		rect.height++; // +1 so selection includes the end block
 
+		// draw outline rectangle with slight transperency
 		DrawRectangleLinesEx(rect, 0.1f, {20, 101, 250, 145});
 	}
 
@@ -405,6 +406,7 @@ bool updateGame()
 		ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 200);
 
 		ImGui::Separator();
+		// ImGui Copy button - copies selected region into copyStructure
 		if (ImGui::Button("Copy"))
 		{
 			gameData.copyStructure.copyFromMap
@@ -415,15 +417,16 @@ bool updateGame()
 			);
 		}
 
-
+		// Text input from file name - writes into saveName char array
 		ImGui::InputText("File name", gameData.saveName, sizeof(gameData.saveName));
 
 		// Save to file 
+		// Save button - saves copied structure to resources/structures/ folder as .bin
 		if (ImGui::Button("Save to File"))
 		{
 			std::string path = RESOURCES_PATH "structures/";
-			path += gameData.saveName;
-			path += ".bin";
+			path += gameData.saveName; // append typed file name
+			path += ".bin"; // append binary extension
 			
 			saveBlockDataToFile
 			(
@@ -434,11 +437,12 @@ bool updateGame()
 			);
 		}
 		// Load from file
+		// Load button - loads structure from file back into copyStructure
 		if (ImGui::Button("Load from File"))
 		{
 			std::string path = RESOURCES_PATH "structures/";
-			path += gameData.saveName;
-			path += ".bin";
+			path += gameData.saveName; // append typed file name
+			path += ".bin"; // append binary extension
 
 			loadBlockDataToFile
 			(
