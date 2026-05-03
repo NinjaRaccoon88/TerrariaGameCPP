@@ -8,6 +8,7 @@
 #include <raymath.h>
 #include <gameLayer/randomStuff.h>
 #include <gameLayer/worldGenerator.h>
+#include <gameLayer/structure.h>
 
 #pragma region imgui
 #include "imgui.h"
@@ -22,8 +23,9 @@ struct GameData
 	Camera2D camera;
 	int creativeSelectedBlock = Block::dirt;
 	
-	Vector2 selectionStart = {};
-	Vector2 selectionEnd = {};
+	Vector2 selectionStart = {}; // start coordinate (block)
+	Vector2 selectionEnd = {}; // end coordinate (block)
+	Structure copyStructure; // this copies the structure
 
 	// worldGenerator variables
 	int seed = 1234; // same seed = same world every time
@@ -118,6 +120,16 @@ bool updateGame()
 		// When we press "1" or "2" - adjust the START or the END to the currently selected block
 		if (IsKeyPressed(KEY_ONE)) { gameData.selectionStart = Vector2{ (float)blockX, (float)blockY }; }
 		if (IsKeyPressed(KEY_TWO)) { gameData.selectionEnd = Vector2{ (float)blockX, (float)blockY }; }
+
+		// When we press "3" - paste the structure in the location of the cursor
+		if (IsKeyPressed(KEY_THREE))
+		{
+			gameData.copyStructure.pasteIntoMap
+			(
+				gameData.gameMap, // map
+				Vector2{ (float)blockX,(float)blockY } // location of the mouse cursor
+			);
+		}
 
 		// making sure the START is not smaller than END
 		if (gameData.selectionStart.x > gameData.selectionEnd.x)
@@ -388,6 +400,17 @@ bool updateGame()
 
 		ImGui::SliderFloat("Camera zoom:", &gameData.camera.zoom, 2, 150);
 		ImGui::SliderFloat("Camera speed:", &CAMERA_SPEED, 5, 200);
+
+		ImGui::Separator();
+		if (ImGui::Button("Copy"))
+		{
+			gameData.copyStructure.copyFromMap
+			(
+				gameData.gameMap, // Map
+				gameData.selectionStart, // Start coord
+				gameData.selectionEnd // End coord
+			);
+		}
 
 		ImGui::Separator();
 		ImGui::Text("World Generator"); // Section header
