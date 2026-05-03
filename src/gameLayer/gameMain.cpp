@@ -9,6 +9,7 @@
 #include <gameLayer/randomStuff.h>
 #include <gameLayer/worldGenerator.h>
 #include <gameLayer/structure.h>
+#include <gameLayer/saveMap.h>
 
 #pragma region imgui
 #include "imgui.h"
@@ -26,6 +27,8 @@ struct GameData
 	Vector2 selectionStart = {}; // start coordinate (block)
 	Vector2 selectionEnd = {}; // end coordinate (block)
 	Structure copyStructure; // this copies the structure
+
+	char saveName[100] = {}; // init to 0
 
 	// worldGenerator variables
 	int seed = 1234; // same seed = same world every time
@@ -411,6 +414,41 @@ bool updateGame()
 				gameData.selectionEnd // End coord
 			);
 		}
+
+
+		ImGui::InputText("File name", gameData.saveName, sizeof(gameData.saveName));
+
+		// Save to file 
+		if (ImGui::Button("Save to File"))
+		{
+			std::string path = RESOURCES_PATH "structures/";
+			path += gameData.saveName;
+			path += ".bin";
+			
+			saveBlockDataToFile
+			(
+				gameData.copyStructure.mapData, // blocks
+				gameData.copyStructure.w, // width
+				gameData.copyStructure.h, // height
+				path.c_str() // file name
+			);
+		}
+		// Load from file
+		if (ImGui::Button("Load from File"))
+		{
+			std::string path = RESOURCES_PATH "structures/";
+			path += gameData.saveName;
+			path += ".bin";
+
+			loadBlockDataToFile
+			(
+				gameData.copyStructure.mapData, // blocks
+				gameData.copyStructure.w, // width
+				gameData.copyStructure.h, // height
+				path.c_str()
+			);
+		}
+
 
 		ImGui::Separator();
 		ImGui::Text("World Generator"); // Section header
