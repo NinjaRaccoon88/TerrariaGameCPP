@@ -13,14 +13,29 @@ struct BlockSaveRepresentation1
 		return b;
 	}
 };
+struct BlockSaveRepresentation2 
+{
+
+	std::uint16_t type = 0;
+	std::uint16_t durability = 0;
+
+	Block toBlock()
+	{
+		Block b;
+		b.type = type;
+		b.durability = durability;
+		return b;
+	}
+};
 
 // current version of the file save system
-const int VERSION = 1;
+const int VERSION = 2;
 
-BlockSaveRepresentation1 toBlockRepresentation(Block b)
+BlockSaveRepresentation2 toBlockRepresentation(Block b)
 {
-	BlockSaveRepresentation1 rez;
+	BlockSaveRepresentation2 rez;
 	rez.type = b.type;
+	rez.durability = b.durability;
 	return rez;
 }
 
@@ -97,6 +112,31 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 			for (int i = 0; i < blockCount; i++)
 			{
 				BlockSaveRepresentation1 read;
+				f.read((char*)&read, sizeof(read));
+
+				if (!f)
+				{
+					blocks.clear();
+					w = 0;
+					h = 0;
+					f.close();
+					return false;
+				}
+
+				blocks[i] = read.toBlock();
+			}
+
+			break;
+		}
+		case 2:
+		{
+			// read block data
+			size_t blockCount = w * h;
+			blocks.resize(blockCount);
+
+			for (int i = 0; i < blockCount; i++)
+			{
+				BlockSaveRepresentation2 read;
 				f.read((char*)&read, sizeof(read));
 
 				if (!f)

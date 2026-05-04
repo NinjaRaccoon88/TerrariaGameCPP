@@ -70,6 +70,8 @@ struct Block
 
 	std::uint8_t variation = 0; // variation of the block
 
+	std::uint8_t durability = 1; // block durability (health) - 1 default for all versions
+
 	void sanitize()
 	{
 		if (type >= BLOCKS_COUNT)
