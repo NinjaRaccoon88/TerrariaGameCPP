@@ -1,7 +1,30 @@
 #include <gameLayer/saveMap.h>
 #include <platform/asserts.h>
 
-bool saveBlockDataToFile(std::vector<Block> blocks, int w, int h, const char* fileName)
+struct BlockSaveRepresentation1 
+{
+
+	std::uint16_t type = 0;
+
+	Block toBlock()
+	{
+		Block b;
+		b.type = type;
+		return b;
+	}
+};
+
+// current version of the file save system
+const int VERSION = 1;
+
+BlockSaveRepresentation1 toBlockRepresentation(Block b)
+{
+	BlockSaveRepresentation1 rez;
+	rez.type = b.type;
+	return rez;
+}
+
+bool saveBlockDataToFile(const std::vector<Block> &blocks, int w, int h, const char* fileName)
 {
 	// open the file in binary mode
 	std::ofstream f(fileName, std::ios::binary);
@@ -17,8 +40,15 @@ bool saveBlockDataToFile(std::vector<Block> blocks, int w, int h, const char* fi
 	if (blocks.size() != w * h) { return false; }
 	if (blocks.size() == 0) { return false; }
 	
+	f.write((const char*)&VERSION, sizeof(VERSION));
 	f.write((const char*)&w, sizeof(w));
 	f.write((const char*)&h, sizeof(h));
+
+	for (int i = 0; i < blocks.size(); i++)
+	{
+		auto b = toBlockRepresentation(blocks[i]);
+		f.write((const char*)&b, sizeof(b));
+	}
 
 	f.write((const char*)blocks.data(), sizeof(Block) * blocks.size());
 
@@ -38,6 +68,10 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 
 	if (!f.is_open()) { return false; }
 
+	int readVersion = 0;
+
+	// read the version
+	f.read((char*)&readVersion, sizeof(readVersion));
 	// read dimensions
 	f.read((char*)&w, sizeof(w));
 	f.read((char*)&h, sizeof(h));
@@ -52,20 +86,41 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 	if (w > 10000) { f.close(); return false; } // probably corrupt data
 	if (h > 10000) { f.close(); return false; } // probably corrupt data
 
-	// read block data
-	size_t blockCount = w * h;
-	blocks.resize(blockCount);
-
-	f.read((char*)blocks.data(), sizeof(Block) * blockCount);
-
-	// if it fails
-	if (!f)
+	switch (readVersion)
 	{
-		blocks.clear();
-		w = 0;
-		h = 0;
-		f.close();
-		return false;
+		case 1:
+		{
+			// read block data
+			size_t blockCount = w * h;
+			blocks.resize(blockCount);
+
+			for (int i = 0; i < blockCount; i++)
+			{
+				BlockSaveRepresentation1 read;
+				f.read((char*)&read, sizeof(read));
+
+				if (!f)
+				{
+					blocks.clear();
+					w = 0;
+					h = 0;
+					f.close();
+					return false;
+				}
+
+				blocks[i] = read.toBlock();
+			}
+
+			break;
+		}
+		default:
+		{
+			// incorrect version
+			w = 0;
+			h = 0;
+			f.close();
+			return false;
+		}
 	}
 
 	for (int i = 0; i < blocks.size(); i++)
