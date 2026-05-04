@@ -1,33 +1,40 @@
 #include <gameLayer/saveMap.h>
 #include <platform/asserts.h>
 
+// VERSION 1 - old format, only had type
+// this is a snapshot of what Block looked like when version 1 was saved
 struct BlockSaveRepresentation1 
 {
 
-	std::uint16_t type = 0;
+	std::uint16_t type = 0; // only type, nothing else
 
+	// converts this old format back into a modern block
 	Block toBlock()
 	{
 		Block b;
 		b.type = type;
+		// durability not in v1, so Block's default value of 1 is used automatically
 		return b;
 	}
 };
+// VERSION 2 - current format, added durability
 struct BlockSaveRepresentation2 
 {
 
 	std::uint16_t type = 0;
-	std::uint16_t durability = 0;
+	std::uint16_t durability = 0; // new field added in v2
 
+	// converts this format into a modern Block
 	Block toBlock()
 	{
 		Block b;
 		b.type = type;
-		b.durability = durability;
+		b.durability = durability; // now we restore durability too
 		return b;
 	}
 };
 
+// this number gets written to every save file
 // current version of the file save system
 const int VERSION = 2;
 
@@ -55,17 +62,18 @@ bool saveBlockDataToFile(const std::vector<Block> &blocks, int w, int h, const c
 	if (blocks.size() != w * h) { return false; }
 	if (blocks.size() == 0) { return false; }
 	
+	// write VERSION number first - this is the "header"
+	// every file starts with this so loader knows what format
 	f.write((const char*)&VERSION, sizeof(VERSION));
 	f.write((const char*)&w, sizeof(w));
 	f.write((const char*)&h, sizeof(h));
 
+	// write each block using the CURRENT representation (v2)
 	for (int i = 0; i < blocks.size(); i++)
 	{
-		auto b = toBlockRepresentation(blocks[i]);
-		f.write((const char*)&b, sizeof(b));
+		auto b = toBlockRepresentation(blocks[i]); // converts to saveable format
+		f.write((const char*)&b, sizeof(b)); // write only what v2 needs
 	}
-
-	f.write((const char*)blocks.data(), sizeof(Block) * blocks.size());
 
 	f.close();
 
@@ -101,6 +109,7 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 	if (w > 10000) { f.close(); return false; } // probably corrupt data
 	if (h > 10000) { f.close(); return false; } // probably corrupt data
 
+	// switch on version - each case knows exactly how that version was saved
 	switch (readVersion)
 	{
 		case 1:
@@ -111,10 +120,10 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 
 			for (int i = 0; i < blockCount; i++)
 			{
-				BlockSaveRepresentation1 read;
-				f.read((char*)&read, sizeof(read));
+				BlockSaveRepresentation1 read; // use V1 struct to read V1 data
+				f.read((char*)&read, sizeof(read)); // read ONLY type
 
-				if (!f)
+				if (!f) // read failed - file is corrupt
 				{
 					blocks.clear();
 					w = 0;
@@ -123,7 +132,8 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 					return false;
 				}
 
-				blocks[i] = read.toBlock();
+				blocks[i] = read.toBlock(); // convert V1 data to modern Block
+				// durability will be default value 1 since v1 didn't have it
 			}
 
 			break;
@@ -136,8 +146,8 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 
 			for (int i = 0; i < blockCount; i++)
 			{
-				BlockSaveRepresentation2 read;
-				f.read((char*)&read, sizeof(read));
+				BlockSaveRepresentation2 read; // use V2 struct to read V2 data
+				f.read((char*)&read, sizeof(read)); // reads the type + durability
 
 				if (!f)
 				{
@@ -148,14 +158,15 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 					return false;
 				}
 
-				blocks[i] = read.toBlock();
+				blocks[i] = read.toBlock(); // converts V2 data to modern block
 			}
 
 			break;
 		}
 		default:
 		{
-			// incorrect version
+			// incorrect/unknown version - file from future version or corrupt
+			// can't load it, return false
 			w = 0;
 			h = 0;
 			f.close();
@@ -163,6 +174,8 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 		}
 	}
 
+	// sanitize every block - reset invalid types to air
+	// protects against corrupt type values
 	for (int i = 0; i < blocks.size(); i++)
 	{
 		blocks[i].sanitize();
