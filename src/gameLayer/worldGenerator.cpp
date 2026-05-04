@@ -1,6 +1,8 @@
 #include <gameLayer/worldGenerator.h>
 #include <gameLayer/randomStuff.h>
 #include <FastNoiseSIMD/FastNoiseSIMD.h>
+#include <gameLayer/structure.h>
+#include <gameLayer/saveMap.h>
 
 void generateWorld
 	(
@@ -29,6 +31,15 @@ void generateWorld
 	// safety clamp - make sure desert doesn't go past map edge
 	if (desertEnd > w) { desertEnd = w; }
 
+	// loading tree structure
+	Structure treeStructure;
+	loadBlockDataToFile
+	(
+		treeStructure.mapData,
+		treeStructure.w,
+		treeStructure.h,
+		RESOURCES_PATH "structures/tree.bin"
+	);
 
 	// Create two separate noise generators - for dirt and for stone layers
 	// unique_ptr automatically frees memory when it goes out of scope
@@ -286,4 +297,85 @@ void generateWorld
 			8.5f // max radius - tunnels never wider than 8.5 blocks
 		);
 	}
+
+	// Spawning tree structure randomly on the grass block
+	// TODO: Upgrade this code (tree variations and etc)
+	for (int x = 0; x < w; x++)
+	{
+		
+		if (getRandomChance(rng, 0.04))
+		{
+			
+			for (int y = 0; y < h; y++)
+			{
+				auto type = gameMap.getBlockUnsafe(x, y).type;
+				if (type == Block::air)
+				{
+					continue;
+				}
+
+				if (type == Block::grassBlock)
+				{
+					// plant tree
+
+					Vector2 spawnPos{ (float)x, (float)y };
+
+					spawnPos.x -= treeStructure.w / 2;
+					spawnPos.y -= treeStructure.h;
+
+					treeStructure.pasteIntoMap(gameMap, spawnPos);
+
+					x += 3; // we don't plant  a tree to overlap this one
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	/* TODO: lambda functions for :
+	- dirt layer
+	- stone layer 
+	- normal caves
+	- extra mountain
+
+	LATER:
+	- different types of caves
+	- dungeons
+	- special structures
+	- procedural structures made of multiple pieces
+	- ores
+	- ice biom
+	- sky islands
+	*/ 
+	
+	// creates the basic world shape with stone
+	auto createStoneLayer = [&]()
+		{
+			// ...
+		};
+
+	// creates one mountain with stone
+	auto addOneExtraMountain = [&]()
+		{
+			// ...
+		};
+
+	// changes the top few blocks to dirt
+	auto dirtLayer = [&]()
+		{
+			// ...
+		};
+
+	auto addNormalCaves = [&]()
+		{
+			// ...
+		};
+
+	auto addRandomSand = [&]()
+		{
+			// ...
+		};
 }
