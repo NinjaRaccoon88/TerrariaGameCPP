@@ -39,9 +39,9 @@ struct GameData
 	float dirtFrequency = 0.009f; // how chaotic/smooth the dirt surface is
 	float stoneFrequency = 0.006f; // how chaotic/smooht the stone layer is
 
-	float caveThreshold = 0.275f; // how many caves spawn
+	float caveThreshold = 0.322f; // how many caves spawn
 	int surfaceBuffer = 10; // how deep before CAVE start
-	float caveFrequency = 0.02f; // cave size/shape
+	float caveFrequency = 0.026f; // cave size/shape
 
 	//TEMPORARY
 	int selectedWall = Wall::skinWall;

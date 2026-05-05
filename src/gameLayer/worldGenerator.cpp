@@ -27,16 +27,6 @@ void generateWorld
 
 	std::vector<int> stoneHeights(w, 0);
 
-	// pick a random start position for the desert
-	// kept away from edges so desert never spawns right at the map border
-	int desertStart = getRandomInt(rng, 10, w - 210);
-
-	// desert is at least 100 blocks wide, up to 200 blocks wide
-	int desertEnd = desertStart + 100 + getRandomInt(rng, 0, 100);
-
-	// safety clamp - make sure desert doesn't go past map edge
-	if (desertEnd > w) { desertEnd = w; }
-
 	// loading tree structure from file
 	// avoids reloading from disk every time a tree is spawned
 	Structure treeStructure;
@@ -147,95 +137,6 @@ void generateWorld
 
 	//int stoneHeightStart = 80; // minimum depth of stone layer
 	//int stoneHeightEnd = 170; // maximum depth of stone layer
-
-
-	// TODO: NEEDS REFACTORING vvv
-	for (int x = 0; x < w; x++) // move column by column across the map
-	{
-		// simple bool - true if current x column falls within desert boundaries
-		bool inDesert = (x >= desertStart && x <= desertEnd);
-
-		// this is LERP formula: start + (end - start) * t
-		int stoneHeight = stoneHeightStart + (stoneHeightEnd - stoneHeightStart) * stoneNoise[x];
-		int dirtHeight = dirtOffsetStart + (dirtOffsetEnd - dirtOffsetStart) * dirtNoise[x];
-
-		// dirt surface = stone surface minus the dirt thickness offset
-		// so dirt always sits a natural distance above stone
-		dirtHeight = stoneHeight - dirtHeight;
-
-		// default block types for normal biomes
-		int dirtType = Block::dirt;
-		int grassType = Block::grassBlock;
-		int stoneType = Block::stone;
-
-		if (inDesert)
-		{
-			// desert replaces dirt with sand
-			dirtType = Block::sand;
-			// desert has no grass - sand goes all the way to surface
-			grassType = Block::sand;
-			// desert has sand stones instead of regular stone
-			stoneType = Block::sandStone;
-		}
-
-		for (int y = 0; y < h; y++) // now fill this column top to bottom
-		{
-			Block b; // default to air
-
-			if (y > dirtHeight) // below surface = dirt O_o
-			{
-				b.type = dirtType;
-			}
-
-			if (y == dirtHeight) // exactly at surface = grass obv :D 
-			{
-				b.type = grassType;
-			}
-
-			if (y > stoneHeight) // below stone line = stone
-			{
-				b.type = stoneType;
-			}
-
-			if (inDesert) // desert
-			{
-				// find the CENTER column of the desert
-				int desertMid = (desertStart + desertEnd) / 2; 
-
-				// half the total width of the desert
-				int desertHalfWidth = (desertEnd - desertStart) / 2;
-
-				// how far is current column from the center (always positive due to abs)
-				int distanceFromDesertMid = std::abs(x - desertMid);
-
-				// This gives a value from 0 at edge to 1 at center
-				// this creates a smoother gradient from edge to center
-				float desertDistance = 1 - distanceFromDesertMid / float(desertHalfWidth);
-
-				// where the triangle stone shape starts (just below surface stone)
-				int desertStoneStart = 10 + stoneHeight;
-				int desertStoneDepth = 20 + stoneHeight; // how deep the triangle goes
-
-				// this creates a pyramid/triangle shape when viewed from the side
-				int triangleStoneY = desertStoneStart + desertDistance * desertStoneDepth;
-				
-				// Apply stone if below the triangle
-				if (y > triangleStoneY)
-				{
-					b.type = Block::stone;
-				}
-			}
-
-			// carve out caves wherever noise is below thershold AND we're underground
-			// 10 is an amount of buffer zone to prevent spawning caves right under grass block
-			if (getCaveNoise(x, y) < caveThreshold && y > dirtHeight + surfaceBuffer)
-			{
-				b.type = Block::air;
-			}
-
-			gameMap.getBlockUnsafe(x, y) = b;
-		}
-	}
 	
 	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
 	// lambda that captures everything from generateWorld scope by refernece [&]
@@ -279,7 +180,7 @@ void generateWorld
 							int digY = y + oy;
 
 							auto b = gameMap.getBlockSafe(digX, digY);
-							if (b)
+							if (b && digY > dirtHeights[digX] + 8) // never dig surfaces
 							{
 								b->type = Block::air; // DEBUG PURPOSES - PLACE AIR WHEN FINISHED
 							}
@@ -290,7 +191,7 @@ void generateWorld
 				changeDirectionTime--;
 				if (changeDirectionTime <= 0) // timer ran out, time to maybe change direction
 				{
-					changeDirectionTime = getRandomInt(rng, 5, 20); // reset timer
+					changeDirectionTime = getRandomInt(rng, 15, 40); // reset timer
 
 					if (getRandomChance(rng, 0.7)) // 70% chance - gentle turn
 					{
@@ -325,59 +226,11 @@ void generateWorld
 
 		};
 
-	for (int i = 0; i < 20; i++) // spawn 20 worms total
-	{
-		spawnWorm
-		(
-			getRandomInt(rng, 10, w - 10), // random X avoiding map edges
-			getRandomInt(rng, 51, h - 10), // random Y underground (51+ avoid surface)
-			getRandomInt(rng, 200, 500), // random length between 200-500 steps
-			8.5f // max radius - tunnels never wider than 8.5 blocks
-		);
-	}
-
-	// Spawning tree structure randomly on the grass block
-	// TODO: Upgrade this code (tree variations and etc)
-	for (int x = 0; x < w; x++)
-	{
-		// 4% chance per column to attempt tree spawning
-		if (getRandomChance(rng, 0.04))
-		{
-			
-			for (int y = 0; y < h; y++)
-			{
-				auto type = gameMap.getBlockUnsafe(x, y).type;
-				if (type == Block::air) // skip air, keep scanning down
-				{
-					continue;
-				}
-
-				if (type == Block::grassBlock) // found surface
-				{
-					// plant tree
-
-					Vector2 spawnPos{ (float)x, (float)y };
-
-					spawnPos.x -= treeStructure.w / 2.0f; // center tree horizontally on column
-					spawnPos.y -= treeStructure.h; // place tree above grass block
-
-					treeStructure.pasteIntoMap(gameMap, spawnPos);
-
-					x += 3; // we don't plant a tree to overlap this one
-				}
-				else
-				{
-					break; // hit non grass solid block, stop scanning
-				}
-			}
-		}
-	}
-
 	/* TODO: lambda functions for :
-	- dirt layer
-	- stone layer 
-	- normal caves
-	- extra mountain
+	- dirt layer - DONE
+	- stone layer - DONE
+	- normal caves - DONE
+	- extra mountain - DONE
 
 	LATER:
 	- different types of caves
@@ -439,11 +292,28 @@ void generateWorld
 			}
 		};
 
+	// Mountain Variables
 	int mountainMid = getRandomInt(rng, 100, w - 210);
 	int mountainHalfWidth = getRandomInt(rng, 30, 80);
 	int mountainStart = mountainMid - mountainHalfWidth;
 	int mountainEnd = mountainMid + mountainHalfWidth;
 	int mountainMaxHeight = 60;
+
+	// Desert Variables
+	// pick a random start position for the desert
+	// kept away from edges so desert never spawns right at the map border
+	int desertStart = getRandomInt(rng, 10, w - 210);
+
+	// desert is at least 100 blocks wide, up to 200 blocks wide
+	int desertEnd = desertStart + 100 + getRandomInt(rng, 0, 100);
+
+	// keep repicking until mountain doesn't overlap desert
+	while (mountainStart < desertEnd && mountainEnd > desertStart)
+	{
+		mountainMid = getRandomInt(rng, 100, w - 210);
+		mountainStart = mountainMid - mountainHalfWidth;
+		mountainEnd = mountainMid + mountainHalfWidth;
+	}
 
 	// creates one mountain with stone
 	auto addOneExtraMountain = [&]()
@@ -494,7 +364,7 @@ void generateWorld
 			for (int x = 0; x < w; x++)
 			{
 
-				if (getRandomChance(rng, 0.004))
+				if (getRandomChance(rng, 0.1)) // 10% on spawning dirt block instead of grass
 				{
 
 					for (int y = 0; y < h; y++)
@@ -551,16 +421,138 @@ void generateWorld
 			}
 		};
 
+	// safety clamp - make sure desert doesn't go past map edge
+	if (desertEnd > w) { desertEnd = w; }
+
 	// generates the Desert Biom
 	auto addDesert = [&]()
 		{
-			// ...
+			// ... TODO: move desert code here
+			float desertDistance = 0.f; // declared here so y loop can see it
+
+			for (int x = 0; x < w; x++)
+			{
+				
+				// simple bool - true if current x column falls within desert boundaries
+				bool inDesert = (x >= desertStart && x <= desertEnd);
+
+				// default block types for normal biomes
+				int dirtType = Block::dirt;
+				int grassType = Block::grassBlock;
+				int stoneType = Block::stone;
+
+				if (inDesert)
+				{
+					// desert replaces dirt with sand
+					dirtType = Block::sand;
+					// desert has no grass - sand goes all the way to surface
+					grassType = Block::sand;
+					// desert has sand stones instead of regular stone
+					stoneType = Block::sandStone;
+
+					// find the CENTER column of the desert
+					int desertMid = (desertStart + desertEnd) / 2;
+
+					// half the total width of the desert
+					int desertHalfWidth = (desertEnd - desertStart) / 2;
+
+					// how far is current column from the center (always positive due to abs)
+					int distanceFromDesertMid = std::abs(x - desertMid);
+
+					// This gives a value from 0 at edge to 1 at center
+					// this creates a smoother gradient from edge to center
+					desertDistance = 1 - distanceFromDesertMid / float(desertHalfWidth);
+
+				}
+
+				for (int y = 0; y < h; y++) // now fill this column top to bottom
+				{
+					auto& b = gameMap.getBlockUnsafe(x, y); // reference to the existing block
+
+					if (b.type == Block::grassBlock) b.type = grassType;
+					else if (b.type == Block::dirt)  b.type = dirtType;
+					else if (b.type == Block::stone) b.type = stoneType;
+
+					if (inDesert) // desert
+					{
+						// where the triangle stone shape starts (just below surface stone)
+						int desertStoneStart = 10 + stoneHeights[x];
+						int desertStoneDepth = 20 + stoneHeights[x]; // how deep the triangle goes
+
+						// this creates a pyramid/triangle shape when viewed from the side
+						int triangleStoneY = desertStoneStart + desertDistance * desertStoneDepth;
+
+						// Apply stone if below the triangle
+						if (y > triangleStoneY)
+						{
+							b.type = Block::stone;
+						}
+					}
+				}
+			}
 		};
 
 	auto addRandomSand = [&]()
 		{
 			// ...
 		};
+
+	// Calling lambda functions (finally LFG!)
+	createStoneLayer();
+	addDesert();
+	addOneExtraMountain();
+	addNormalCaves();
+#pragma region TreeSpawner
+	// Spawning tree structure randomly on the grass block
+	// TODO: Upgrade this code (tree variations and etc)
+	for (int x = 0; x < w; x++)
+	{
+		// 4% chance per column to attempt tree spawning
+		if (getRandomChance(rng, 0.04))
+		{
+
+			for (int y = 0; y < h; y++)
+			{
+				auto type = gameMap.getBlockUnsafe(x, y).type;
+				if (type == Block::air) // skip air, keep scanning down
+				{
+					continue;
+				}
+
+				if (type == Block::grassBlock) // found surface
+				{
+					// plant tree
+
+					Vector2 spawnPos{ (float)x, (float)y };
+
+					spawnPos.x -= treeStructure.w / 2.0f; // center tree horizontally on column
+					spawnPos.y -= treeStructure.h; // place tree above grass block
+
+					treeStructure.pasteIntoMap(gameMap, spawnPos);
+
+					x += 3; // we don't plant a tree to overlap this one
+				}
+				else
+				{
+					break; // hit non grass solid block, stop scanning
+				}
+			}
+		}
+	}
+#pragma endregion TreeSpawner
+	dirtLayer();
+#pragma region WormSpawner
+	for (int i = 0; i < 12; i++) // spawn 12 worms total
+	{
+		spawnWorm
+		(
+			getRandomInt(rng, 10, w - 10), // random X avoiding map edges
+			getRandomInt(rng, 100, h - 10), // random Y underground (100+ avoid surface)
+			getRandomInt(rng, 150, 350), // random length between 150-350 steps
+			6.0f // max radius - tunnels never wider than 6 blocks
+		);
+	}
+#pragma endregion WormSpawner
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
