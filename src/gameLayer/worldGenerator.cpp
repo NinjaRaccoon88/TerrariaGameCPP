@@ -31,7 +31,8 @@ void generateWorld
 	// safety clamp - make sure desert doesn't go past map edge
 	if (desertEnd > w) { desertEnd = w; }
 
-	// loading tree structure
+	// loading tree structure from file
+	// avoids reloading from disk every time a tree is spawned
 	Structure treeStructure;
 	loadBlockDataToFile
 	(
@@ -302,34 +303,34 @@ void generateWorld
 	// TODO: Upgrade this code (tree variations and etc)
 	for (int x = 0; x < w; x++)
 	{
-		
+		// 4% chance per column to attempt tree spawning
 		if (getRandomChance(rng, 0.04))
 		{
 			
 			for (int y = 0; y < h; y++)
 			{
 				auto type = gameMap.getBlockUnsafe(x, y).type;
-				if (type == Block::air)
+				if (type == Block::air) // skip air, keep scanning down
 				{
 					continue;
 				}
 
-				if (type == Block::grassBlock)
+				if (type == Block::grassBlock) // found surface
 				{
 					// plant tree
 
 					Vector2 spawnPos{ (float)x, (float)y };
 
-					spawnPos.x -= treeStructure.w / 2;
-					spawnPos.y -= treeStructure.h;
+					spawnPos.x -= treeStructure.w / 2; // center tree horizontally on column
+					spawnPos.y -= treeStructure.h; // place tree above grass block
 
 					treeStructure.pasteIntoMap(gameMap, spawnPos);
 
-					x += 3; // we don't plant  a tree to overlap this one
+					x += 3; // we don't plant a tree to overlap this one
 				}
 				else
 				{
-					break;
+					break; // hit non grass solid block, stop scanning
 				}
 			}
 		}
