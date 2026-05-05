@@ -195,7 +195,7 @@ void generateWorld
 				b.type = stoneType;
 			}
 
-			if (inDesert)
+			if (inDesert) // desert
 			{
 				// find the CENTER column of the desert
 				int desertMid = (desertStart + desertEnd) / 2; 
@@ -234,13 +234,6 @@ void generateWorld
 			gameMap.getBlockUnsafe(x, y) = b;
 		}
 	}
-
-	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
-	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
-	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
-	FastNoiseSIMD::FreeNoiseSet(caveNoise);
-	FastNoiseSIMD::FreeNoiseSet(caveNoise2);
-	FastNoiseSIMD::FreeNoiseSet(caveBlendNoise);
 	
 	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
 	// lambda that captures everything from generateWorld scope by refernece [&]
@@ -363,7 +356,7 @@ void generateWorld
 
 					Vector2 spawnPos{ (float)x, (float)y };
 
-					spawnPos.x -= treeStructure.w / 2; // center tree horizontally on column
+					spawnPos.x -= treeStructure.w / 2.0f; // center tree horizontally on column
 					spawnPos.y -= treeStructure.h; // place tree above grass block
 
 					treeStructure.pasteIntoMap(gameMap, spawnPos);
@@ -447,6 +440,48 @@ void generateWorld
 	auto addOneExtraMountain = [&]()
 		{
 			// ...
+
+			int mountainMid = getRandomInt(rng, 100, w - 210);
+			int mountainHalfWidth = getRandomInt(rng, 30, 80);
+			int mountainStart = mountainMid - mountainHalfWidth;
+			int mountainEnd = mountainMid + mountainHalfWidth;
+			int mountainMaxHeight = 60;
+
+			for (int x = 0; x < w; x++)
+			{
+				bool inMountain = (x >= mountainStart && x <= mountainEnd);
+
+				if (inMountain)
+				{
+					// how far is current column from the center (always positive due to abs)
+					int distanceFromMountainMid = std::abs(x - mountainMid);
+
+					float t = 1.f - distanceFromMountainMid / float(mountainHalfWidth);
+					int riseAmount = (int)(mountainMaxHeight * t);
+
+					int mountainSurfaceY = dirtHeights[x];
+
+					for (int i = 0; i < riseAmount; i++)
+					{
+						int placeY = mountainSurfaceY - i; // going UP the mountain
+						
+						auto b = gameMap.getBlockSafe(x, placeY);
+
+						if (b) // always check first
+						{
+							// place block at (x, placeY)
+							if (i > riseAmount * 70 / 100) // top 30% -> snow
+							{
+								b->type = Block::snow;
+							}
+							else
+							{
+								b->type = Block::stone;
+							}
+						}
+					}
+				}
+			}
 		};
 
 	// changes the top few blocks to dirt
@@ -517,4 +552,11 @@ void generateWorld
 		{
 			// ...
 		};
+
+	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
+	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
+	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
+	FastNoiseSIMD::FreeNoiseSet(caveNoise);
+	FastNoiseSIMD::FreeNoiseSet(caveNoise2);
+	FastNoiseSIMD::FreeNoiseSet(caveBlendNoise);
 }
