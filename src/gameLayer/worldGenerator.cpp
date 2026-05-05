@@ -25,6 +25,8 @@ void generateWorld
 	// declared outside lambdas so both createStoneLayer and addNormalCaves can use it
 	std::vector<int> dirtHeights(w, 0); // w elements, all initialized to 0
 
+	std::vector<int> stoneHeights(w, 0);
+
 	// pick a random start position for the desert
 	// kept away from edges so desert never spawns right at the map border
 	int desertStart = getRandomInt(rng, 10, w - 210);
@@ -406,6 +408,7 @@ void generateWorld
 				
 				// store this column so caves can use it later!
 				dirtHeights[x] = dirtHeight;
+				stoneHeights[x] = stoneHeight;
 
 				// default block types for normal biomes
 				int dirtType = Block::dirt;
@@ -436,16 +439,16 @@ void generateWorld
 			}
 		};
 
+	int mountainMid = getRandomInt(rng, 100, w - 210);
+	int mountainHalfWidth = getRandomInt(rng, 30, 80);
+	int mountainStart = mountainMid - mountainHalfWidth;
+	int mountainEnd = mountainMid + mountainHalfWidth;
+	int mountainMaxHeight = 60;
+
 	// creates one mountain with stone
 	auto addOneExtraMountain = [&]()
 		{
 			// ...
-
-			int mountainMid = getRandomInt(rng, 100, w - 210);
-			int mountainHalfWidth = getRandomInt(rng, 30, 80);
-			int mountainStart = mountainMid - mountainHalfWidth;
-			int mountainEnd = mountainMid + mountainHalfWidth;
-			int mountainMaxHeight = 60;
 
 			for (int x = 0; x < w; x++)
 			{
@@ -546,6 +549,12 @@ void generateWorld
 					}
 				}
 			}
+		};
+
+	// generates the Desert Biom
+	auto addDesert = [&]()
+		{
+			// ...
 		};
 
 	auto addRandomSand = [&]()
