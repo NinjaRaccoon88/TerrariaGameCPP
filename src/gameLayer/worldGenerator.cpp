@@ -119,7 +119,7 @@ void generateWorld
 	for (int i = 0; i < w * h; i++)
 	{
 		caveNoise[i] = (caveNoise[i] + 1) / 2;
-		caveNoise2[i] = (caveNoise[i] + 1) / 2;
+		caveNoise2[i] = (caveNoise2[i] + 1) / 2;
 		caveBlendNoise[i] = (caveBlendNoise[i] + 1) / 2;
 	}
 
@@ -239,6 +239,8 @@ void generateWorld
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
 	FastNoiseSIMD::FreeNoiseSet(caveNoise);
+	FastNoiseSIMD::FreeNoiseSet(caveNoise2);
+	FastNoiseSIMD::FreeNoiseSet(caveBlendNoise);
 	
 	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
 	// lambda that captures everything from generateWorld scope by refernece [&]
@@ -451,6 +453,32 @@ void generateWorld
 	auto dirtLayer = [&]()
 		{
 			// ...
+			for (int x = 0; x < w; x++)
+			{
+
+				if (getRandomChance(rng, 0.004))
+				{
+
+					for (int y = 0; y < h; y++)
+					{
+						// get current block type
+						auto type = gameMap.getBlockUnsafe(x, y).type;
+						if (type == Block::air)
+						{
+							continue; // if it's not ground, we continue searching
+						}
+						// we need to find surface (grass block)
+						if (type == Block::grassBlock)
+						{
+							gameMap.getBlockUnsafe(x, y).type = Block::dirt;
+						}
+						else
+						{
+							break; // hit non grass solid block, stop scanning
+						}
+					}
+				}
+			}
 		};
 
 	auto addNormalCaves = [&]()
