@@ -21,6 +21,10 @@ void generateWorld
 
 	std::ranlux24_base rng(seed++); // rng seeded - same seed = same world
 
+	// stores dirtHeight for every column so addNormalCaves can access it
+	// declared outside lambdas so both createStoneLayer and addNormalCaves can use it
+	std::vector<int> dirtHeights(w, 0); // w elements, all initialized to 0
+
 	// pick a random start position for the desert
 	// kept away from edges so desert never spawns right at the map border
 	int desertStart = getRandomInt(rng, 10, w - 210);
@@ -47,11 +51,17 @@ void generateWorld
 	std::unique_ptr<FastNoiseSIMD> dirtNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 	std::unique_ptr<FastNoiseSIMD> stoneNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 	std::unique_ptr<FastNoiseSIMD> caveNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
+	// second cave noise - wide open caverns
+	std::unique_ptr<FastNoiseSIMD> caveNoiseGenerator2(FastNoiseSIMD::NewFastNoiseSIMD());
+	// blend noise - controls how cave type dominates in each area
+	std::unique_ptr<FastNoiseSIMD> caveBlendNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
 
 	// give each generator a different seed so they produce diff noise patterns
 	dirtNoiseGenerator->SetSeed(seed++);
 	stoneNoiseGenerator->SetSeed(seed++);
 	caveNoiseGenerator->SetSeed(seed++);
+	caveNoiseGenerator2->SetSeed(seed++);
+	caveBlendNoiseGenerator->SetSeed(seed++);
 
 	// SimplexFractal = smooth organic looking noise (faster than Perlin)
 	dirtNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
@@ -67,13 +77,36 @@ void generateWorld
 	// TODO: make this editable in ImGui (done)
 	caveNoiseGenerator->SetFrequency(caveFrequency);
 
+	// wide caverns - lower frequency, more octaves
+	caveNoiseGenerator2->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
+	caveNoiseGenerator2->SetFractalOctaves(2);
+	caveNoiseGenerator2->SetFrequency(0.008f); // lower = bigger caves
+
+	// blend noise - very low frequency so transitions are wide and gradual
+	caveBlendNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
+	caveBlendNoiseGenerator->SetFractalOctaves(1);
+	caveBlendNoiseGenerator->SetFrequency(0.003f); // very low = large blend regions
+
 	// allocate arrays to store one noise value per column
 	float* dirtNoise = FastNoiseSIMD::GetEmptySet(w);
 	float* stoneNoise = FastNoiseSIMD::GetEmptySet(w);
 
+	// allocate a FULL 2D array - w*h values instead of just w like terrain noise
+	// caves need every x,y position sampled unlike terrain which only needs one row
+	float* caveNoise = FastNoiseSIMD::GetEmptySet(w * h);
+
+	float* caveNoise2 = FastNoiseSIMD::GetEmptySet(w * h);
+	float* caveBlendNoise = FastNoiseSIMD::GetEmptySet(w * h);
+
 	// fill both arrays with noise values from all w columns at once
 	dirtNoiseGenerator->FillNoiseSet(dirtNoise, 0, 0, 0, w, 1, 1);
 	stoneNoiseGenerator->FillNoiseSet(stoneNoise, 0, 0, 0, w, 1, 1);
+
+	// fill the full 2D noise set - note w and h are swapped compared to terrain
+	caveNoiseGenerator->FillNoiseSet(caveNoise, 0, 0, 0, h, w, 1);
+
+	caveNoiseGenerator2->FillNoiseSet(caveNoise2, 0, 0, 0, h, w, 1);
+	caveBlendNoiseGenerator->FillNoiseSet(caveBlendNoise, 0, 0, 0, h, w, 1);
 
 	// convert from [-1 1] to [0,1] cuz we need to use Lerp after which requires values 0-1
 	for (int i = 0; i < w; i++)
@@ -82,17 +115,12 @@ void generateWorld
 		stoneNoise[i] = (stoneNoise[i] + 1) / 2;
 	}
 
-	// allocate a FULL 2D array - w*h values instead of just w like terrain noise
-	// caves need every x,y position sampled unlike terrain which only needs one row
-	float* caveNoise = FastNoiseSIMD::GetEmptySet(w * h);
-
-	// fill the full 2D noise set - note w and h are swapped compared to terrain
-	caveNoiseGenerator->FillNoiseSet(caveNoise, 0, 0, 0, h, w, 1);
-
 	// convert from [-1 1] to [0,1]
 	for (int i = 0; i < w * h; i++)
 	{
 		caveNoise[i] = (caveNoise[i] + 1) / 2;
+		caveNoise2[i] = (caveNoise[i] + 1) / 2;
+		caveBlendNoise[i] = (caveBlendNoise[i] + 1) / 2;
 	}
 
 	// lambda function - convenient shorthand to look up cave noise at any x,y position
@@ -102,12 +130,24 @@ void generateWorld
 			return caveNoise[x + y * w];
 		};
 
+	auto getCaveNoise2 = [&](int x, int y)
+		{
+			return caveNoise2[x + y * w];
+		};
+
+	auto getBlendNoise = [&](int x, int y)
+		{
+			return caveBlendNoise[x + y * w];
+		};
+
 	//int dirtOffsetStart = -5; // minimum dirt thickness
 	//int dirtOffsetEnd = 35; // maximum dirt thickness above stone
 
 	//int stoneHeightStart = 80; // minimum depth of stone layer
 	//int stoneHeightEnd = 170; // maximum depth of stone layer
 
+
+	// TODO: NEEDS REFACTORING vvv
 	for (int x = 0; x < w; x++) // move column by column across the map
 	{
 		// simple bool - true if current x column falls within desert boundaries
@@ -356,6 +396,49 @@ void generateWorld
 	auto createStoneLayer = [&]()
 		{
 			// ...
+			for (int x = 0; x < w; x++)
+			{
+				// all the terrain code here
+				// EXCEPT the cave carving if statement
+
+				// this is LERP formula: start + (end - start) * t
+				int stoneHeight = stoneHeightStart + (stoneHeightEnd - stoneHeightStart) * stoneNoise[x];
+				int dirtHeight = dirtOffsetStart + (dirtOffsetEnd - dirtOffsetStart) * dirtNoise[x];
+
+				// dirt surface = stone surface minus the dirt thickness offset
+				// so dirt always sits a natural distance above stone
+				dirtHeight = stoneHeight - dirtHeight;
+				
+				// store this column so caves can use it later!
+				dirtHeights[x] = dirtHeight;
+
+				// default block types for normal biomes
+				int dirtType = Block::dirt;
+				int grassType = Block::grassBlock;
+				int stoneType = Block::stone;
+
+				for (int y = 0; y < h; y++) // now fill this column top to bottom
+				{
+					Block b; // default to air
+
+					if (y > dirtHeight) // below surface = dirt O_o
+					{
+						b.type = dirtType;
+					}
+
+					if (y == dirtHeight) // exactly at surface = grass obv :D 
+					{
+						b.type = grassType;
+					}
+
+					if (y > stoneHeight) // below stone line = stone
+					{
+						b.type = stoneType;
+					}
+
+					gameMap.getBlockUnsafe(x, y) = b;
+				}
+			}
 		};
 
 	// creates one mountain with stone
@@ -373,6 +456,33 @@ void generateWorld
 	auto addNormalCaves = [&]()
 		{
 			// ...
+			for (int x = 0; x < w; x++)
+			{
+
+				// read the stored dirtHeight for this column
+				int dirtHeight = dirtHeights[x];
+
+				for (int y = 0; y < h; y++)
+				{
+					// only the carving logic here
+
+					// blend between two cave noises
+					float cave1 = getCaveNoise(x, y); // tight tunnels
+					float cave2 = getCaveNoise2(x, y); // wide caverns
+					float blend = getBlendNoise(x,y); // 0 = all cave1, 1 = all cave2
+
+					// lerp between the two cave noises using blend as 't'
+					// this is LERP formula: start + (end - start) * t
+					float blendedCave = cave1 + (cave2 - cave1) * blend;
+
+					// carve out caves wherever noise is below thershold AND we're underground
+					// 10 is an amount of buffer zone to prevent spawning caves right under grass block
+					if (blendedCave < caveThreshold && y > dirtHeight + surfaceBuffer)
+					{
+						gameMap.getBlockUnsafe(x,y).type = Block::air;
+					}
+				}
+			}
 		};
 
 	auto addRandomSand = [&]()
