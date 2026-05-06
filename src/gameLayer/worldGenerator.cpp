@@ -66,7 +66,6 @@ void generateWorld
 
 	caveNoiseGenerator->SetNoiseType(FastNoiseSIMD::NoiseType::SimplexFractal);
 	caveNoiseGenerator->SetFractalOctaves(3);
-	// TODO: make this editable in ImGui (done)
 	caveNoiseGenerator->SetFrequency(caveFrequency);
 
 	// wide caverns - lower frequency, more octaves
@@ -131,14 +130,8 @@ void generateWorld
 		{
 			return caveBlendNoise[x + y * w];
 		};
-
-	//int dirtOffsetStart = -5; // minimum dirt thickness
-	//int dirtOffsetEnd = 35; // maximum dirt thickness above stone
-
-	//int stoneHeightStart = 80; // minimum depth of stone layer
-	//int stoneHeightEnd = 170; // maximum depth of stone layer
 	
-	// TODO: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
+	// DONE: fucking lambda spawn worm refactoring took me a while to make but it was worth it (I guess)
 	// lambda that captures everything from generateWorld scope by refernece [&]
 	// parameters: starting position, max tunnel length, max tunnel radius
 	auto spawnWorm = [&](float startX, float startY, float maxLength, float maxR)
@@ -182,7 +175,7 @@ void generateWorld
 							auto b = gameMap.getBlockSafe(digX, digY);
 							if (b && digY > dirtHeights[digX] + 8) // never dig surfaces
 							{
-								b->type = Block::air; // DEBUG PURPOSES - PLACE AIR WHEN FINISHED
+								b->type = Block::air;
 							}
 						}
 					}
@@ -223,7 +216,6 @@ void generateWorld
 				// clamps the radius between 2.2 and 8.5 so tunnel never disappears or gets huge
 				radius = std::clamp(radius, 2.2f, maxR);
 			}
-
 		};
 
 	/* TODO: lambda functions for :
@@ -237,7 +229,7 @@ void generateWorld
 	- dungeons
 	- special structures
 	- procedural structures made of multiple pieces
-	- ores
+	- ores - DONE
 	- ice biom
 	- sky islands
 	*/ 
@@ -389,6 +381,7 @@ void generateWorld
 			}
 		};
 
+	// creates caves using perlin noise
 	auto addNormalCaves = [&]()
 		{
 			// ...
@@ -492,6 +485,7 @@ void generateWorld
 			}
 		};
 
+	// adds random sand - close to surface and deep below the surface
 	auto addRandomSand = [&]()
 		{
 			// ...
@@ -573,6 +567,7 @@ void generateWorld
 			}
 		};
 
+	// creates layer of all kind of ores!
 	auto addOres = [&]()
 		{
 			// ...
@@ -774,7 +769,6 @@ void generateWorld
 	addDesert();			// 2. Replace blocks in desert area (create desert biom)
 	addOneExtraMountain();  // 3. Raise terrain for mountain
 	addNormalCaves();		// 4. Carve out cave systems
-	addRandomSand();		// Random sand (TESTING)
 							// 5. Place trees on grass surface (needs refactoring)
 #pragma region TreeSpawner
 	// Spawning tree structure randomly on the grass block
@@ -828,7 +822,8 @@ void generateWorld
 		);
 	}
 #pragma endregion WormSpawner
-	addOres();				// 8. Scatter ores underground (must be after caves so ored don't get carved)
+	addRandomSand();		// 8. Random sand
+	addOres();				// 9. Scatter ores underground (must be after caves and sand)
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
