@@ -145,7 +145,7 @@ void generateWorld
 		{
 			// picks a random starting point
 			// it's important for x and y to be floats
-			float x = startX; // worm current X position
+			float x = startX; // worm current X position k
 			float y = startY; // worm current Y position
 
 			// initial movement direction (-1 to 1 range)
@@ -287,7 +287,7 @@ void generateWorld
 						b.type = stoneType;
 					}
 
-					gameMap.getBlockUnsafe(x, y) = b;
+					gameMap.getBlockUnsafe(x, y) = b; // write block into map
 				}
 			}
 		};
@@ -343,7 +343,7 @@ void generateWorld
 						if (b) // always check first
 						{
 							// place block at (x, placeY)
-							if (i > riseAmount * 70 / 100) // top 30% -> snow
+							if (i > riseAmount * 0.8) // top 20% -> snow
 							{
 								b->type = Block::snow;
 							}
@@ -497,11 +497,140 @@ void generateWorld
 			// ...
 		};
 
+	auto addOres = [&]()
+		{
+			// ...
+
+			for (int x = 0; x < w; x++)
+			{
+
+				for (int y = 0; y < h; y++)
+				{
+
+					auto& b = gameMap.getBlockUnsafe(x, y);
+
+#pragma region CopperSpawner
+					// copper - spawns in dirt or stone, just below surface
+					if (b.type == Block::dirt || b.type == Block::stone)
+					{
+						if (y > dirtHeights[x] + 5) // at least 5 below surface
+						{
+							if (getRandomChance(rng, 0.002)) // 0.2% chance per block
+							{
+								float clusterX = x;
+								float clusterY = y;
+
+								float dirX = getRandomFloat(rng, -1, 1);
+								float dirY = getRandomFloat(rng, -1, 1);
+
+								int clusterLength = getRandomInt(rng, 2, 3);
+
+								for (int step = 0; step < clusterLength; step++)
+								{
+									// place ore at current cluster position
+									// move clusterX and clusterY by dirX and dirY
+									
+									clusterX += dirX;
+									clusterY += dirY;
+
+									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+									if (ore && (ore->type == Block::dirt || ore->type == Block::stone))
+									{
+										ore->type = Block::copper;
+									}
+
+									// randomly nudge direction slightly each step for natural look
+									dirX += getRandomFloat(rng, -0.3f, 0.3f);
+									dirY += getRandomFloat(rng, -0.3f, 0.3f);
+								}
+							}
+						}
+					}
+#pragma endregion CopperSpawner
+#pragma region IronSpawner
+					// iron - spawns in stone
+					if (b.type == Block::stone)
+					{
+						if (y > dirtHeights[x] + 35) // must be 35 blocks below surface
+						{
+							// very little chance of spawning iron ore
+							if (getRandomChance(rng, 0.00087)) // 0.087% chance of spawning
+							{
+								float clusterX = x;
+								float clusterY = y;
+
+								float dirX = getRandomFloat(rng, -1, 1);
+								float dirY = getRandomFloat(rng, -1, 1);
+
+								int clusterLength = getRandomInt(rng, 3, 5);
+
+								for (int step = 0; step < clusterLength; step++)
+								{
+
+									// place ore at current cluster position
+									// move cluster position each step
+									clusterX += dirX;
+									clusterY += dirY;
+
+									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+									if (ore && ore->type == Block::stone)
+									{
+										ore->type = Block::iron;
+									}
+								}
+							}
+						}
+					}
+#pragma endregion IronSpawner
+#pragma region GoldSpawner
+					// gold spawns in stones way deeper than copper and iron
+					if (b.type == Block::stone)
+					{
+						if (y > dirtHeights[x] + 100)
+						{
+							// very little chance of spawning gold ore
+							if (getRandomChance(rng, 0.0005)) // 0.05% chance - rarest
+							{
+								float clusterX = x;
+								float clusterY = y;
+
+								float dirX = getRandomFloat(rng, -1, 1);
+								float dirY = getRandomFloat(rng, -1, 1);
+
+								int clusterLength = getRandomInt(rng, 3, 5);
+
+								for (int step = 0; step < clusterLength; step++)
+								{
+
+									// place ore at current cluster position
+									// move cluster position each step
+									clusterX += dirX;
+									clusterY += dirY;
+
+									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+									if (ore && ore->type == Block::stone)
+									{
+										ore->type = Block::gold;
+									}
+								}
+							}
+						}
+					}
+#pragma endregion GoldSpawner
+
+				}
+			}
+		};
+
 	// Calling lambda functions (finally LFG!)
-	createStoneLayer();
-	addDesert();
-	addOneExtraMountain();
-	addNormalCaves();
+	createStoneLayer();		// 1. Build base terrain (must be first)
+	addDesert();			// 2. Replace blocks in desert area (create desert biom)
+	addOneExtraMountain();  // 3. Raise terrain for mountain
+	addNormalCaves();		// 4. Carve out cave systems
+							// 5. Place trees on grass surface
 #pragma region TreeSpawner
 	// Spawning tree structure randomly on the grass block
 	// TODO: Upgrade this code (tree variations and etc)
@@ -540,7 +669,8 @@ void generateWorld
 		}
 	}
 #pragma endregion TreeSpawner
-	dirtLayer();
+	dirtLayer();			// 6. Randomly replace some grass with dirt
+							// 7. Carve organic worm tunnels
 #pragma region WormSpawner
 	for (int i = 0; i < 12; i++) // spawn 12 worms total
 	{
@@ -553,6 +683,7 @@ void generateWorld
 		);
 	}
 #pragma endregion WormSpawner
+	addOres();				// 8. Scatter ores underground (must be after caves so ored don't get carved)
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
