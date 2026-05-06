@@ -495,6 +495,82 @@ void generateWorld
 	auto addRandomSand = [&]()
 		{
 			// ...
+
+			for (int x = 0; x < w; x++)
+			{
+
+				for (int y = 0; y < h; y++)
+				{
+					auto& b = gameMap.getBlockUnsafe(x,y);
+
+#pragma region SandSpawnerLayer1
+					// Sand Layer 1 - near surface, replaces dirt
+					if (b.type == Block::dirt || b.type == Block::grassBlock);
+					{
+						if (getRandomChance(rng, 0.002))
+						{
+							float clusterX = x;
+							float clusterY = y;
+
+							float dirX = getRandomFloat(rng, -1, 1);
+							float dirY = getRandomFloat(rng, -1, 1);
+
+							int clusterLength = getRandomInt(rng, 2, 4);
+
+							for (int step = 0; step < clusterLength; step++)
+							{
+								// place sand at current cluster position
+								// move clusterX and clusterY by dirX and dirY
+
+								clusterX += dirX;
+								clusterY += dirY;
+
+								auto sand = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+								if (sand && (sand->type == Block::dirt || sand->type == Block::grassBlock))
+								{
+									sand->type = Block::sand;
+								}
+							}
+						}
+					}
+#pragma endregion SandSpawnerLayer1
+#pragma region SandSpawnerLayer2
+					if (b.type == Block::stone)
+					{
+						if (y > dirtHeights[x] + 150) // at least 150 blocks below surface
+						{
+							if (getRandomChance(rng, 0.0005)) // 0.5% to spawn
+							{
+								float clusterX = x;
+								float clusterY = y;
+
+								float dirX = getRandomFloat(rng, -1, 1);
+								float dirY = getRandomFloat(rng, -1, 1);
+
+								int clusterLength = getRandomInt(rng, 5, 10);
+
+								for (int step = 0; step < clusterLength; step++)
+								{
+									// place sandStone at current cluster position
+									// move clusterX and clusterY by dirX and dirY
+
+									clusterX += dirX;
+									clusterY += dirY;
+
+									auto sandStone = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+									if (sandStone && sandStone->type == Block::stone)
+									{
+										sandStone->type = Block::sand;
+									}
+								}
+							}
+						}
+					}
+#pragma endregion SandSpawnerLayer2
+				}
+			}
 		};
 
 	auto addOres = [&]()
@@ -620,6 +696,74 @@ void generateWorld
 						}
 					}
 #pragma endregion GoldSpawner
+#pragma region RubySpawnerInSand
+					// Ruby ore spawner below the surface
+					if (b.type == Block::sand)
+					{
+						if (y > dirtHeights[x] + 150)
+						{
+							if (getRandomChance(rng, 0.33))
+							{
+								float clusterX = x;
+								float clusterY = y;
+
+								float dirX = getRandomFloat(rng, -1, 1);
+								float dirY = getRandomFloat(rng, -1, 1);
+
+								int clusterLength = getRandomInt(rng, 5, 10);
+
+								for (int step = 0; step < clusterLength; step++)
+								{
+									// place ruby Ore at current cluster position
+									// move clusterX and clusterY by dirX and dirY
+
+									clusterX += dirX;
+									clusterY += dirY;
+
+									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+									if (ore && ore->type == Block::sand)
+									{
+										ore->type = Block::sandRuby;
+									}
+								}
+							}
+						}
+					}
+#pragma endregion RubySpawnerInSand
+#pragma region RubySpawner
+					// Ruby ore spawner below the surface
+					if (b.type == Block::sandStone)
+					{
+						if (getRandomChance(rng, 0.002)) // 0.2% chance of spawning ruby ore in desert
+						{
+							float clusterX = x;
+							float clusterY = y;
+
+							float dirX = getRandomFloat(rng, -1, 1);
+							float dirY = getRandomFloat(rng, -1, 1);
+
+							int clusterLength = getRandomInt(rng, 5, 10);
+
+							for (int step = 0; step < clusterLength; step++)
+							{
+								// place ruby Ore at current cluster position
+								// move clusterX and clusterY by dirX and dirY
+
+								clusterX += dirX;
+								clusterY += dirY;
+
+								auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
+
+								if (ore && ore->type == Block::sandStone)
+								{
+									ore->type = Block::sandRuby;
+								}
+							}
+						}
+					}
+		
+#pragma endregion RubySpawner
 
 				}
 			}
@@ -630,7 +774,8 @@ void generateWorld
 	addDesert();			// 2. Replace blocks in desert area (create desert biom)
 	addOneExtraMountain();  // 3. Raise terrain for mountain
 	addNormalCaves();		// 4. Carve out cave systems
-							// 5. Place trees on grass surface
+	addRandomSand();		// Random sand (TESTING)
+							// 5. Place trees on grass surface (needs refactoring)
 #pragma region TreeSpawner
 	// Spawning tree structure randomly on the grass block
 	// TODO: Upgrade this code (tree variations and etc)
