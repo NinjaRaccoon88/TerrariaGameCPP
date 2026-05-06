@@ -330,6 +330,17 @@ void generateWorld
 			}
 		};
 
+	// Ice Biom Variables
+	// pick a random start pos for the ice biom
+	// keeping away from edges as always :D
+	int iceStart = getRandomInt(rng, 10, w - 210);
+
+	// ice biom will be at least 100 blocks wide, up to 200 blocks wide
+	int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
+
+	int iceHalfWidth = (iceEnd - iceStart) / 2;
+	int iceMid = iceStart + iceHalfWidth;
+
 	// Mountain Variables
 	int mountainMid = getRandomInt(rng, 100, w - 210);
 	int mountainHalfWidth = getRandomInt(rng, 30, 80);
@@ -345,13 +356,100 @@ void generateWorld
 	// desert is at least 100 blocks wide, up to 200 blocks wide
 	int desertEnd = desertStart + 100 + getRandomInt(rng, 0, 100);
 
-	// keep repicking until mountain doesn't overlap desert
-	while (mountainStart < desertEnd && mountainEnd > desertStart)
+	// safety clamp - make sure desert doesn't go past map edge
+	if (desertEnd > w) { desertEnd = w; }
+
+	// safety clamp for mountain
+	if (mountainEnd > w) { mountainEnd = w; }
+
+	// safety clamp for the ice biom
+	if (iceEnd > w) { iceEnd = w; }
+
+	// keep repicking until ice biom doesn't overlap with desert
+	while (iceStart < desertEnd && iceEnd > desertStart)
+	{
+		iceStart = getRandomInt(rng, 10, w - 210);
+		iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
+		iceHalfWidth = (iceEnd - iceStart) / 2;
+		iceMid = iceStart + iceHalfWidth;
+	}
+
+	// keep repicking until mountain doesn't overlap Desert and Ice Biom
+	while ((mountainStart < desertEnd && mountainEnd > desertStart) || 
+		   (mountainStart < iceEnd && mountainEnd > iceStart))
 	{
 		mountainMid = getRandomInt(rng, 100, w - 210);
 		mountainStart = mountainMid - mountainHalfWidth;
 		mountainEnd = mountainMid + mountainHalfWidth;
 	}
+
+	// generates the Ice Biom
+	auto addIceBiom = [&]()
+		{
+			// ...
+
+			float iceDistance = 0.0f; // declared here so X and Y loop can see it
+
+			for (int x = 0; x < w; x++)
+			{
+			
+				// bool to check whether current x column falls within ice biom boundaries
+				bool inIce = (x >= iceStart && x <= iceEnd);
+
+				if (inIce)
+				{
+					// how far is current column from the center (always positive due to abs)
+					int distanceFromIceMid = std::abs(x - iceMid);
+
+					// This gives a value from 0 at edge to 1 at center
+					// this creates a smoother gradient from edge to center
+					iceDistance = 1 - distanceFromIceMid / float(iceHalfWidth);
+
+					for (int y = 0; y < h; y++) // fill this column from bottom to the top
+					{
+						// getting reference to the current block
+						auto& b = gameMap.getBlockUnsafe(x, y);
+
+						// TRIANGLE FIRST - underground ice structure
+						// underground ice structure - similar to desert triangle
+						// upside down triangle
+						int iceUndergroundStart = stoneHeights[x];
+						int iceUndergroundDepth = 80; // how deep the ice goes
+
+						int triangleIceY = iceUndergroundStart + iceDistance * iceUndergroundDepth;
+
+						if (y > iceUndergroundStart && y < triangleIceY)
+						{
+							if (b.type == Block::stone) { b.type = Block::ice; }
+						}
+
+						// GRADIENT SECOND - surface block conversion with edge fallof
+						// how wide the gradient transition is on each edge
+						int gradientWidth = 10;
+
+						// calculate edge factor - only 0 to 1 within gradientWidth blocks of each edge
+						float edgeFactor = 1.0f; // default = fully ice (center)
+
+						int distFromLeft = x - iceStart;
+						int distFromRight = iceEnd - x;
+						int closestEdge = std::min(distFromLeft, distFromRight);
+
+						if (closestEdge < gradientWidth)
+						{
+							edgeFactor = closestEdge / float(gradientWidth);
+							// 0 at very edge, 1 at gradientWidth blocks inside
+						}
+
+						// use iceDistance as the chance - center always converts, edges rarely do
+						if (getRandomChance(rng, edgeFactor))
+						{
+							if (b.type == Block::grassBlock) { b.type = Block::snow; }
+							else if (b.type == Block::dirt) { b.type = Block::snow; }
+						}
+					}
+				}
+			}
+		};
 
 	// creates one mountain with stone
 	auto addOneExtraMountain = [&]()
@@ -460,13 +558,9 @@ void generateWorld
 			}
 		};
 
-	// safety clamp - make sure desert doesn't go past map edge
-	if (desertEnd > w) { desertEnd = w; }
-
 	// generates the Desert Biom
 	auto addDesert = [&]()
 		{
-			// ... TODO: move desert code here
 			float desertDistance = 0.f; // declared here so y loop can see it
 
 			for (int x = 0; x < w; x++)
@@ -657,10 +751,11 @@ void generateWorld
 
 	// Calling lambda functions (finally LFG!)
 	createStoneLayer();		// 1. Build base terrain (must be first)
-	addDesert();			// 2. Replace blocks in desert area (create desert biom)
-	addOneExtraMountain();  // 3. Raise terrain for mountain
-	addNormalCaves();		// 4. Carve out cave systems
-							// 5. Place trees on grass surface (needs refactoring)
+	addDesert();			// 2. Replace blocks in desert area (generate desert biom)
+	addIceBiom();			// 3. Generate Ice Biom
+	addOneExtraMountain();  // 4. Raise terrain for mountain
+	addNormalCaves();		// 5. Carve out cave systems
+							// 6. Place trees on grass surface (needs refactoring)
 #pragma region TreeSpawner
 	// Spawning tree structure randomly on the grass block
 	// TODO: Upgrade this code (tree variations and etc)
@@ -699,8 +794,8 @@ void generateWorld
 		}
 	}
 #pragma endregion TreeSpawner
-	dirtLayer();			// 6. Randomly replace some grass with dirt
-							// 7. Carve organic worm tunnels
+	dirtLayer();			// 7. Randomly replace some grass with dirt
+							// 8. Carve organic worm tunnels
 #pragma region WormSpawner
 	for (int i = 0; i < 12; i++) // spawn 12 worms total
 	{
@@ -713,8 +808,8 @@ void generateWorld
 		);
 	}
 #pragma endregion WormSpawner
-	addRandomSand();		// 8. Random sand
-	addOres();				// 9. Scatter ores underground (must be after caves and sand)
+	addRandomSand();		// 9. Random sand
+	addOres();				// 10. Scatter ores underground (must be after caves and sand)
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
