@@ -499,25 +499,40 @@ void generateWorld
 
 #pragma region SandSpawnerLayer1
 					// Sand Layer 1 - near surface, replaces dirt
-					if (b.type == Block::dirt || b.type == Block::grassBlock);
+					if (b.type == Block::dirt || b.type == Block::grassBlock)
 					{
 						if (getRandomChance(rng, 0.002))
 						{
+									
+							// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+							int primaryDir = getRandomInt(rng, 0, 3); 
+
 							float clusterX = x;
 							float clusterY = y;
-
-							float dirX = getRandomFloat(rng, -1, 1);
-							float dirY = getRandomFloat(rng, -1, 1);
-
 							int clusterLength = getRandomInt(rng, 2, 4);
 
 							for (int step = 0; step < clusterLength; step++)
 							{
-								// place sand at current cluster position
-								// move clusterX and clusterY by dirX and dirY
+								// move mostly in primary direction with occasional perpendicular step
+								if (primaryDir == 0) { clusterX += 1; }
+								else if (primaryDir == 1) { clusterX -= 1; }
+								else if (primaryDir == 2) { clusterY += 1; }
+								else if (primaryDir == 3) { clusterY -= 1; }
 
-								clusterX += dirX;
-								clusterY += dirY;
+								// small chance to step sideways for a more blocky natural shape
+								if (getRandomChance(rng, 0.3f))
+								{
+									if (primaryDir == 0 || primaryDir == 1)
+									{
+										clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+									}
+									else
+									{
+										clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+									}
+								}
 
 								auto sand = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -536,21 +551,35 @@ void generateWorld
 						{
 							if (getRandomChance(rng, 0.0005)) // 0.5% to spawn
 							{
-								float clusterX = x;
-								float clusterY = y;
+								// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+							int primaryDir = getRandomInt(rng, 0, 3); 
 
-								float dirX = getRandomFloat(rng, -1, 1);
-								float dirY = getRandomFloat(rng, -1, 1);
+							float clusterX = x;
+							float clusterY = y;
+							int clusterLength = getRandomInt(rng, 5, 10);
 
-								int clusterLength = getRandomInt(rng, 5, 10);
+							for (int step = 0; step < clusterLength; step++)
+							{
+								// move mostly in primary direction with occasional perpendicular step
+								if (primaryDir == 0) { clusterX += 1; }
+								else if (primaryDir == 1) { clusterX -= 1; }
+								else if (primaryDir == 2) { clusterY += 1; }
+								else if (primaryDir == 3) { clusterY -= 1; }
 
-								for (int step = 0; step < clusterLength; step++)
+								// small chance to step sideways for a more blocky natural shape
+								if (getRandomChance(rng, 0.3f))
 								{
-									// place sandStone at current cluster position
-									// move clusterX and clusterY by dirX and dirY
-
-									clusterX += dirX;
-									clusterY += dirY;
+									if (primaryDir == 0 || primaryDir == 1)
+									{
+										clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+									}
+									else
+									{
+										clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+									}
+								}
 
 									auto sandStone = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -588,21 +617,35 @@ void generateWorld
 						{
 							if (getRandomChance(rng, 0.002)) // 0.2% chance per block
 							{
+								// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+								int primaryDir = getRandomInt(rng, 0, 3);
+
 								float clusterX = x;
 								float clusterY = y;
-
-								float dirX = getRandomFloat(rng, -1, 1);
-								float dirY = getRandomFloat(rng, -1, 1);
-
-								int clusterLength = getRandomInt(rng, 2, 3);
+								int clusterLength = getRandomInt(rng, 2, 4);
 
 								for (int step = 0; step < clusterLength; step++)
 								{
-									// place ore at current cluster position
-									// move clusterX and clusterY by dirX and dirY
-									
-									clusterX += dirX;
-									clusterY += dirY;
+									// move mostly in primary direction with occasional perpendicular step
+									if (primaryDir == 0) { clusterX += 1; }
+									else if (primaryDir == 1) { clusterX -= 1; }
+									else if (primaryDir == 2) { clusterY += 1; }
+									else if (primaryDir == 3) { clusterY -= 1; }
+
+									// small chance to step sideways for a more blocky natural shape
+									if (getRandomChance(rng, 0.3f))
+									{
+										if (primaryDir == 0 || primaryDir == 1)
+										{
+											clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+										}
+										else
+										{
+											clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+										}
+									}
 
 									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -610,10 +653,6 @@ void generateWorld
 									{
 										ore->type = Block::copper;
 									}
-
-									// randomly nudge direction slightly each step for natural look
-									dirX += getRandomFloat(rng, -0.3f, 0.3f);
-									dirY += getRandomFloat(rng, -0.3f, 0.3f);
 								}
 							}
 						}
@@ -628,21 +667,35 @@ void generateWorld
 							// very little chance of spawning iron ore
 							if (getRandomChance(rng, 0.00087)) // 0.087% chance of spawning
 							{
+								// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+								int primaryDir = getRandomInt(rng, 0, 3);
+
 								float clusterX = x;
 								float clusterY = y;
-
-								float dirX = getRandomFloat(rng, -1, 1);
-								float dirY = getRandomFloat(rng, -1, 1);
-
 								int clusterLength = getRandomInt(rng, 3, 5);
 
 								for (int step = 0; step < clusterLength; step++)
 								{
+									// move mostly in primary direction with occasional perpendicular step
+									if (primaryDir == 0) { clusterX += 1; }
+									else if (primaryDir == 1) { clusterX -= 1; }
+									else if (primaryDir == 2) { clusterY += 1; }
+									else if (primaryDir == 3) { clusterY -= 1; }
 
-									// place ore at current cluster position
-									// move cluster position each step
-									clusterX += dirX;
-									clusterY += dirY;
+									// small chance to step sideways for a more blocky natural shape
+									if (getRandomChance(rng, 0.3f))
+									{
+										if (primaryDir == 0 || primaryDir == 1)
+										{
+											clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+										}
+										else
+										{
+											clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+										}
+									}
 
 									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -664,21 +717,35 @@ void generateWorld
 							// very little chance of spawning gold ore
 							if (getRandomChance(rng, 0.0005)) // 0.05% chance - rarest
 							{
+								// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+								int primaryDir = getRandomInt(rng, 0, 3);
+
 								float clusterX = x;
 								float clusterY = y;
-
-								float dirX = getRandomFloat(rng, -1, 1);
-								float dirY = getRandomFloat(rng, -1, 1);
-
 								int clusterLength = getRandomInt(rng, 3, 5);
 
 								for (int step = 0; step < clusterLength; step++)
 								{
+									// move mostly in primary direction with occasional perpendicular step
+									if (primaryDir == 0) { clusterX += 1; }
+									else if (primaryDir == 1) { clusterX -= 1; }
+									else if (primaryDir == 2) { clusterY += 1; }
+									else if (primaryDir == 3) { clusterY -= 1; }
 
-									// place ore at current cluster position
-									// move cluster position each step
-									clusterX += dirX;
-									clusterY += dirY;
+									// small chance to step sideways for a more blocky natural shape
+									if (getRandomChance(rng, 0.3f))
+									{
+										if (primaryDir == 0 || primaryDir == 1)
+										{
+											clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+										}
+										else
+										{
+											clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+										}
+									}
 
 									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -699,21 +766,35 @@ void generateWorld
 						{
 							if (getRandomChance(rng, 0.33))
 							{
+								// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+								int primaryDir = getRandomInt(rng, 0, 3);
+
 								float clusterX = x;
 								float clusterY = y;
-
-								float dirX = getRandomFloat(rng, -1, 1);
-								float dirY = getRandomFloat(rng, -1, 1);
-
 								int clusterLength = getRandomInt(rng, 5, 10);
 
 								for (int step = 0; step < clusterLength; step++)
 								{
-									// place ruby Ore at current cluster position
-									// move clusterX and clusterY by dirX and dirY
+									// move mostly in primary direction with occasional perpendicular step
+									if (primaryDir == 0) { clusterX += 1; }
+									else if (primaryDir == 1) { clusterX -= 1; }
+									else if (primaryDir == 2) { clusterY += 1; }
+									else if (primaryDir == 3) { clusterY -= 1; }
 
-									clusterX += dirX;
-									clusterY += dirY;
+									// small chance to step sideways for a more blocky natural shape
+									if (getRandomChance(rng, 0.3f))
+									{
+										if (primaryDir == 0 || primaryDir == 1)
+										{
+											clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+										}
+										else
+										{
+											clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+										}
+									}
 
 									auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
@@ -732,21 +813,35 @@ void generateWorld
 					{
 						if (getRandomChance(rng, 0.002)) // 0.2% chance of spawning ruby ore in desert
 						{
+							// instead of random dirX and dirY both at once
+							// pick ONE dominant direction per cluster
+							// 0=right, 1=left, 2=down, 3=up
+							int primaryDir = getRandomInt(rng, 0, 3);
+
 							float clusterX = x;
 							float clusterY = y;
-
-							float dirX = getRandomFloat(rng, -1, 1);
-							float dirY = getRandomFloat(rng, -1, 1);
-
 							int clusterLength = getRandomInt(rng, 5, 10);
 
 							for (int step = 0; step < clusterLength; step++)
 							{
-								// place ruby Ore at current cluster position
-								// move clusterX and clusterY by dirX and dirY
+								// move mostly in primary direction with occasional perpendicular step
+								if (primaryDir == 0) { clusterX += 1; }
+								else if (primaryDir == 1) { clusterX -= 1; }
+								else if (primaryDir == 2) { clusterY += 1; }
+								else if (primaryDir == 3) { clusterY -= 1; }
 
-								clusterX += dirX;
-								clusterY += dirY;
+								// small chance to step sideways for a more blocky natural shape
+								if (getRandomChance(rng, 0.3f))
+								{
+									if (primaryDir == 0 || primaryDir == 1)
+									{
+										clusterY += getRandomInt(rng, -1, 1); // occasional vertical nudge
+									}
+									else
+									{
+										clusterX += getRandomInt(rng, -1, 1); // occasional horizontal nudge
+									}
+								}
 
 								auto ore = gameMap.getBlockSafe((int)clusterX, (int)clusterY);
 
