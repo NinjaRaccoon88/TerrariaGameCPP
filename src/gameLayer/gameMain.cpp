@@ -47,8 +47,8 @@ struct GameData
 	float caveFrequency = 0.026f; // cave size/shape
 
 	// 900 is the width of the world
-	int iceStart = getRandomInt(rng, 10, 900 - 210); // where the ice biom starts
-	int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100); // where the ice biom ends
+	int iceStart = 0; // where the ice biom starts
+	int iceEnd = 0; // where the ice biom ends
 
 	//TEMPORARY
 	int selectedWall = Wall::skinWall;

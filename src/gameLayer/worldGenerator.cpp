@@ -34,6 +34,11 @@ void generateWorld
 	std::vector<Structure> largeTrees; // trees 1,5,12,14
 	std::vector<Structure> hugeTrees; // trees 11,13
 
+	std::vector<Structure> snowSmallTrees; // trees 8,9,10
+	std::vector<Structure> snowMediumTrees; // tree 3
+	std::vector<Structure> snowLargeTrees; // trees 1,5 ,7
+	std::vector<Structure> snowHugeTrees; // trees 2,4,6
+
 	// helper lambda to load tree bin file and push it into the correct vector
 	// avoids repeating the same load code 14 times
 	auto loadTree = [&](std::vector<Structure>& vec, const char* path)
@@ -42,7 +47,8 @@ void generateWorld
 			loadBlockDataToFile(s.mapData, s.w, s.h, path); // load from disk into struct
 			vec.push_back(s); // add to the vector
 		};
-
+	
+#pragma region loadTree
 	// Loading all tree bin files in order small - huge :D
 	loadTree(smallTrees, RESOURCES_PATH "structures/tree6.bin");
 	loadTree(smallTrees, RESOURCES_PATH "structures/tree7.bin");
@@ -58,6 +64,19 @@ void generateWorld
 	loadTree(largeTrees, RESOURCES_PATH "structures/tree14.bin");
 	loadTree(hugeTrees, RESOURCES_PATH "structures/tree11.bin");
 	loadTree(hugeTrees, RESOURCES_PATH "structures/tree13.bin");
+
+	// Loading all Ice Biom tree variants
+	loadTree(snowSmallTrees, RESOURCES_PATH "structures/snowTree8.bin");
+	loadTree(snowSmallTrees, RESOURCES_PATH "structures/snowTree9.bin");
+	loadTree(snowSmallTrees, RESOURCES_PATH "structures/snowTree10.bin");
+	loadTree(snowMediumTrees, RESOURCES_PATH "structures/snowTree3.bin");
+	loadTree(snowLargeTrees, RESOURCES_PATH "structures/snowTree1.bin");
+	loadTree(snowLargeTrees, RESOURCES_PATH "structures/snowTree5.bin");
+	loadTree(snowLargeTrees, RESOURCES_PATH "structures/snowTree7.bin");
+	loadTree(snowHugeTrees, RESOURCES_PATH "structures/snowTree2.bin");
+	loadTree(snowHugeTrees, RESOURCES_PATH "structures/snowTree4.bin");
+	loadTree(snowHugeTrees, RESOURCES_PATH "structures/snowTree6.bin");
+#pragma endregion loadTree
 
 	// Create two separate noise generators - for dirt and for stone layers
 	// unique_ptr automatically frees memory when it goes out of scope
@@ -354,10 +373,10 @@ void generateWorld
 	// Ice Biom Variables
 	// pick a random start pos for the ice biom
 	// keeping away from edges as always :D
-	//int iceStart = getRandomInt(rng, 10, w - 210);
+	iceStart = getRandomInt(rng, 10, w - 210);
 
 	// ice biom will be at least 100 blocks wide, up to 200 blocks wide
-	//int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
+	iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
 
 	int iceHalfWidth = (iceEnd - iceStart) / 2;
 	int iceMid = iceStart + iceHalfWidth;
