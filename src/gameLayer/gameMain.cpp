@@ -230,9 +230,9 @@ bool updateGame()
 			if (b.type != Wall::air)
 			{
 				// I have no idea why (-3) but if it works - it works
-				// I added 2 new blocks to the texture and there is air block
-				// so maybe I need to do -3 for those 3 blocks, welp
-				Rectangle sourceRect = getTextureAtlas(b.type - 3 + Block::BLOCKS_COUNT, b.variation, 32, 32);
+				// I added 3 new blocks to the texture and there is air block
+				// so maybe I need to do -4 for those 4 blocks, welp
+				Rectangle sourceRect = getTextureAtlas(b.type - 4 + Block::BLOCKS_COUNT, b.variation, 32, 32);
 
 				// Drawing
 				DrawTexturePro
@@ -283,27 +283,31 @@ bool updateGame()
 					bool logAbove = above && above->type == Block::woodLog;
 					bool leafBelow = below && below->type == Block::leaves;
 
-					// Fucking 8 if statements upcoming, hardcoding is a way to go!
-					// also picking the rigth order is pain in the ass
+					int logVariant = 0; // default = regular log
 
 					// if we have another log below us, place regular wood Log
 					if (leafLeft && leafRight && !logBelow && !logAbove) // most specific first
-						sourceRect = getTextureAtlas(5, b.variation, 32, 32); // surrounded by leaves
+						logVariant = 5; // surrounded by leaves
 					else if (leafLeft && leafRight)
-						sourceRect = getTextureAtlas(1, b.variation, 32, 32); // leaves both sides
+						logVariant = 1; // leaves both sides
 					else if (leafLeft)
-						sourceRect = getTextureAtlas(3, b.variation, 32, 32); // leaf left only
+						logVariant = 3; // leaf left only
 					else if (leafRight)
-						sourceRect = getTextureAtlas(2, b.variation, 32, 32); // leaf right only
+						logVariant = 2; // leaf right only
 					else if (!logBelow && !logAbove)
-						sourceRect = getTextureAtlas(7, b.variation, 32, 32); // completely isolated stump
+						logVariant = 7; // completely isolated stump
 					else if (!logBelow)
-						sourceRect = getTextureAtlas(4, b.variation, 32, 32); // Stump with log above
+						logVariant = 4; // Stump with log above
 					else if (!logAbove && !leafBelow)
-						sourceRect = getTextureAtlas(6, b.variation, 32, 32); // top of tree, no leaves
+						logVariant = 6; // top of tree, no leaves
 					else if (logBelow)
-						sourceRect = getTextureAtlas(0, b.variation, 32, 32); // regular log
+						logVariant = 0; // regular log
 					
+					// offset for snowy trees
+					//if (isSnowy) logVariant += 8;
+
+					sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
+
 					// Drawing
 					DrawTexturePro
 					(

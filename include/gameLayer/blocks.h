@@ -61,6 +61,7 @@ struct Block
 		bonePlatform,
 		head,
 		skin,
+		snowLeaves,
 
 		BLOCKS_COUNT
 
