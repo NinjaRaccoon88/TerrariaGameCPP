@@ -27,16 +27,37 @@ void generateWorld
 
 	std::vector<int> stoneHeights(w, 0);
 
-	// loading tree structure from file
+	// loading all tree structures grouped by size
 	// avoids reloading from disk every time a tree is spawned
-	Structure treeStructure;
-	loadBlockDataToFile
-	(
-		treeStructure.mapData,
-		treeStructure.w,
-		treeStructure.h,
-		RESOURCES_PATH "structures/tree.bin"
-	);
+	std::vector<Structure> smallTrees; // trees 6,7,8,9
+	std::vector<Structure> mediumTrees; // trees 2,3,4,10
+	std::vector<Structure> largeTrees; // trees 1,5,12,14
+	std::vector<Structure> hugeTrees; // trees 11,13
+
+	// helper lambda to load tree bin file and push it into the correct vector
+	// avoids repeating the same load code 14 times
+	auto loadTree = [&](std::vector<Structure>& vec, const char* path)
+		{
+			Structure s;
+			loadBlockDataToFile(s.mapData, s.w, s.h, path); // load from disk into struct
+			vec.push_back(s); // add to the vector
+		};
+
+	// Loading all tree bin files in order small - huge :D
+	loadTree(smallTrees, RESOURCES_PATH "structures/tree6.bin");
+	loadTree(smallTrees, RESOURCES_PATH "structures/tree7.bin");
+	loadTree(smallTrees, RESOURCES_PATH "structures/tree8.bin");
+	loadTree(smallTrees, RESOURCES_PATH "structures/tree9.bin");
+	loadTree(mediumTrees, RESOURCES_PATH "structures/tree2.bin");
+	loadTree(mediumTrees, RESOURCES_PATH "structures/tree3.bin");
+	loadTree(mediumTrees, RESOURCES_PATH "structures/tree4.bin");
+	loadTree(mediumTrees, RESOURCES_PATH "structures/tree10.bin");
+	loadTree(largeTrees, RESOURCES_PATH "structures/tree1.bin");
+	loadTree(largeTrees, RESOURCES_PATH "structures/tree5.bin");
+	loadTree(largeTrees, RESOURCES_PATH "structures/tree12.bin");
+	loadTree(largeTrees, RESOURCES_PATH "structures/tree14.bin");
+	loadTree(hugeTrees, RESOURCES_PATH "structures/tree11.bin");
+	loadTree(hugeTrees, RESOURCES_PATH "structures/tree13.bin");
 
 	// Create two separate noise generators - for dirt and for stone layers
 	// unique_ptr automatically frees memory when it goes out of scope
@@ -230,7 +251,7 @@ void generateWorld
 	- special structures
 	- procedural structures made of multiple pieces
 	- ores - DONE
-	- ice biom
+	- ice biom - DONE (almost - needs ore)
 	- sky islands
 	*/ 
 	
@@ -775,16 +796,47 @@ void generateWorld
 
 				if (type == Block::grassBlock) // found surface
 				{
-					// plant tree
+					
+					// pick a random category then random tree from it
+					int category = getRandomInt(rng, 0, 3);
+					Structure* chosenTree = nullptr; // pointer to whichever tree we pick
+					int spacing = 1; // how many blocks to skip after planting to prevent overlpping 
 
-					Vector2 spawnPos{ (float)x, (float)y };
+					// empty() check prevents crash if a bin file failed to load
+					if (category == 0 && !smallTrees.empty())
+					{
+						// getRandomInt picks a random index within a vector
+						chosenTree = &smallTrees[getRandomInt(rng, 0, smallTrees.size() - 1)];
+						spacing = 1;
+					}
+					else if (category == 1 && !mediumTrees.empty())
+					{
+						chosenTree = &mediumTrees[getRandomInt(rng, 0, mediumTrees.size() - 1)];
+						spacing = 3;
+					}
+					else if (category == 2 && !largeTrees.empty())
+					{
+						chosenTree = &largeTrees[getRandomInt(rng, 0, largeTrees.size() - 1)];
+						spacing = 5;
+					}
+					else if (category == 3 && !hugeTrees.empty())
+					{
+						chosenTree = &hugeTrees[getRandomInt(rng, 0, hugeTrees.size() - 1)];
+						spacing = 8;
+					}
 
-					spawnPos.x -= treeStructure.w / 2.0f; // center tree horizontally on column
-					spawnPos.y -= treeStructure.h; // place tree above grass block
+					// only spawn if we actually picked a tree and it has valid data
+					if (chosenTree && chosenTree->w > 0)
+					{
+						Vector2 spawnPos{ (float)x, (float)y };
 
-					treeStructure.pasteIntoMap(gameMap, spawnPos);
+						spawnPos.x -= chosenTree->w / 2.0f; // center tree horizontally on column
+						spawnPos.y -= chosenTree->h; // place tree above grass block
 
-					x += 3; // we don't plant a tree to overlap this one
+						chosenTree->pasteIntoMap(gameMap, spawnPos);
+
+						x += spacing; // we don't plant a tree to overlap this one
+					}
 				}
 				else
 				{
