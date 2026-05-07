@@ -812,17 +812,17 @@ void generateWorld
 					else if (category == 1 && !mediumTrees.empty())
 					{
 						chosenTree = &mediumTrees[getRandomInt(rng, 0, mediumTrees.size() - 1)];
-						spacing = 3;
+						spacing = 4;
 					}
 					else if (category == 2 && !largeTrees.empty())
 					{
 						chosenTree = &largeTrees[getRandomInt(rng, 0, largeTrees.size() - 1)];
-						spacing = 5;
+						spacing = 6;
 					}
 					else if (category == 3 && !hugeTrees.empty())
 					{
 						chosenTree = &hugeTrees[getRandomInt(rng, 0, hugeTrees.size() - 1)];
-						spacing = 8;
+						spacing = 9;
 					}
 
 					// only spawn if we actually picked a tree and it has valid data
