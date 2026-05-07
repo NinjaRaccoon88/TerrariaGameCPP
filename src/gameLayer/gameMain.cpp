@@ -18,6 +18,9 @@
 #include "ImGuiStyle.h"
 #pragma endregion
 
+//TEMPORARY
+std::ranlux24_base rng(std::random_device{}()); // seeded with a truly random value
+
 struct GameData
 {
 	GameMap gameMap;
@@ -43,6 +46,10 @@ struct GameData
 	int surfaceBuffer = 10; // how deep before CAVE start
 	float caveFrequency = 0.026f; // cave size/shape
 
+	// 900 is the width of the world
+	int iceStart = getRandomInt(rng, 10, 900 - 210); // where the ice biom starts
+	int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100); // where the ice biom ends
+
 	//TEMPORARY
 	int selectedWall = Wall::skinWall;
 
@@ -51,9 +58,6 @@ struct GameData
 AssetManager assetManager;
 
 bool showImgui = false;
-
-//TEMPORARY
-std::ranlux24_base rng(std::random_device{}()); // seeded with a truly random value
 
 bool initGame()
 {
@@ -66,7 +70,7 @@ bool initGame()
 		gameData.stoneHeightStart, gameData.stoneHeightEnd,
 		gameData.dirtFrequency, gameData.stoneFrequency,
 		gameData.caveThreshold, gameData.surfaceBuffer,
-		gameData.caveFrequency);
+		gameData.caveFrequency, gameData.iceStart, gameData.iceEnd);
 
 
 	gameData.camera.target = { 20 ,120 }; // the point in the world the camera is looking at
@@ -276,12 +280,12 @@ bool updateGame()
 					Block* right = gameData.gameMap.getBlockSafe(x + 1, y);
 
 					// Bool for leaves
-					bool leafAbove = above && above->type == Block::leaves;
-					bool logBelow = below && below->type == Block::woodLog;
-					bool leafLeft = left && left->type == Block::leaves;
-					bool leafRight = right && right->type == Block::leaves;
+					bool leafAbove = above && (above->type == Block::leaves || above->type == Block::snowLeaves);
+					bool leafLeft = left && (left->type == Block::leaves || left->type == Block::snowLeaves);
+					bool leafRight = right && (right->type == Block::leaves || right->type == Block::snowLeaves);
+					bool leafBelow = below && (below->type == Block::leaves || below->type == Block::snowLeaves);
 					bool logAbove = above && above->type == Block::woodLog;
-					bool leafBelow = below && below->type == Block::leaves;
+					bool logBelow = below && below->type == Block::woodLog;
 
 					int logVariant = 0; // default = regular log
 
@@ -302,11 +306,20 @@ bool updateGame()
 						logVariant = 6; // top of tree, no leaves
 					else if (logBelow)
 						logVariant = 0; // regular log
+
+					// check whether are we in Ice Biom or no
+					bool inIce = (x >= gameData.iceStart && x <= gameData.iceEnd);
 					
 					// offset for snowy trees
-					//if (isSnowy) logVariant += 8;
-
-					sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
+					if (inIce)
+					{
+						logVariant += 8;
+						sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
+					}
+					else 
+					{
+						sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
+					}
 
 					// Drawing
 					DrawTexturePro
@@ -482,7 +495,7 @@ bool updateGame()
 				gameData.stoneHeightStart, gameData.stoneHeightEnd,
 				gameData.dirtFrequency, gameData.stoneFrequency,
 				gameData.caveThreshold, gameData.surfaceBuffer,
-				gameData.caveFrequency);
+				gameData.caveFrequency, gameData.iceStart, gameData.iceEnd);
 		}
 
 		ImGui::Separator();

@@ -11,7 +11,7 @@ void generateWorld
 		int stoneHeightStart, int stoneHeightEnd,
 		float dirtFrequency, float stoneFrequency,
 		float caveThreshold, int surfaceBuffer,
-		float caveFrequency
+		float caveFrequency, int iceStart, int iceEnd
 	)
 {
 	const int w = 900;
@@ -354,10 +354,10 @@ void generateWorld
 	// Ice Biom Variables
 	// pick a random start pos for the ice biom
 	// keeping away from edges as always :D
-	int iceStart = getRandomInt(rng, 10, w - 210);
+	//int iceStart = getRandomInt(rng, 10, w - 210);
 
 	// ice biom will be at least 100 blocks wide, up to 200 blocks wide
-	int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
+	//int iceEnd = iceStart + 100 + getRandomInt(rng, 0, 100);
 
 	int iceHalfWidth = (iceEnd - iceStart) / 2;
 	int iceMid = iceStart + iceHalfWidth;
@@ -783,7 +783,7 @@ void generateWorld
 	for (int x = 0; x < w; x++)
 	{
 		// 4% chance per column to attempt tree spawning
-		if (getRandomChance(rng, 0.04))
+		if (getRandomChance(rng, 0.1)) // 10% chance on spawning a tree
 		{
 
 			for (int y = 0; y < h; y++)
