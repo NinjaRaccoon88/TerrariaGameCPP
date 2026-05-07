@@ -765,6 +765,16 @@ void generateWorld
 					}
 		
 #pragma endregion RubySpawner
+#pragma region IceOreSpawner
+					// Ice ore spawner among Ice blocks
+					if (b.type == Block::ice)
+					{
+						if (getRandomChance(rng, 0.002)) // 0.2% chance of spawning ice ore in ice biom
+						{
+							spawnCluster(x, y, 5, 10, Block::ice, Block::snowBlueRuby);
+						}
+					}
+#pragma endregion IceOreSpawner
 
 				}
 			}
