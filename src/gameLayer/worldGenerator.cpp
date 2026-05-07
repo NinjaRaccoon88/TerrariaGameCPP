@@ -11,7 +11,7 @@ void generateWorld
 		int stoneHeightStart, int stoneHeightEnd,
 		float dirtFrequency, float stoneFrequency,
 		float caveThreshold, int surfaceBuffer,
-		float caveFrequency, int iceStart, int iceEnd
+		float caveFrequency, int &iceStart, int &iceEnd
 	)
 {
 	const int w = 900;
@@ -769,7 +769,7 @@ void generateWorld
 					// Ice ore spawner among Ice blocks
 					if (b.type == Block::ice)
 					{
-						if (getRandomChance(rng, 0.002)) // 0.2% chance of spawning ice ore in ice biom
+						if (getRandomChance(rng, 0.005)) // 0.5% chance of spawning ice ore in ice biom
 						{
 							spawnCluster(x, y, 5, 10, Block::ice, Block::snowBlueRuby);
 						}

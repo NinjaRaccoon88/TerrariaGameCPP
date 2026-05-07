@@ -311,15 +311,9 @@ bool updateGame()
 					bool inIce = (x >= gameData.iceStart && x <= gameData.iceEnd);
 					
 					// offset for snowy trees
-					if (inIce)
-					{
-						logVariant += 8;
-						sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
-					}
-					else 
-					{
-						sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
-					}
+					if (inIce) { logVariant += 8; }
+
+					sourceRect = getTextureAtlas(logVariant, b.variation, 32, 32);
 
 					// Drawing
 					DrawTexturePro

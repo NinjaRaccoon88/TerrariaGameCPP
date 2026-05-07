@@ -11,5 +11,5 @@ void generateWorld
 			int stoneHeightStart, int stoneHeightEnd,
 			float dirtFrequency, float stoneFrequency,
 			float caveThreshold, int surfaceBuffer,
-			float caveFrequency, int iceStart, int iceEnd
+			float caveFrequency, int &iceStart, int &iceEnd
 		);
