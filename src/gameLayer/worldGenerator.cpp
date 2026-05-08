@@ -39,6 +39,15 @@ void generateWorld
 	std::vector<Structure> snowLargeTrees; // trees 1,5 ,7
 	std::vector<Structure> snowHugeTrees; // trees 2,4,6
 
+	// laod the special structure that will only spawn on the flying island
+	Structure islandBuilding1;
+	loadBlockDataToFile
+	(
+		islandBuilding1.mapData, 
+		islandBuilding1.w, islandBuilding1.h,
+		RESOURCES_PATH "structures/islandBuilding1.bin"
+	);
+
 	// helper lambda to load tree bin file and push it into the correct vector
 	// avoids repeating the same load code 14 times
 	auto loadTree = [&](std::vector<Structure>& vec, const char* path)
@@ -853,6 +862,15 @@ void generateWorld
 						}
 					}
 				}
+			}
+			
+			// paste in the special structure
+			if (islandBuilding1.w > 0) // check it loaded successfuly
+			{
+				Vector2 buildingPos;
+				buildingPos.x = islandMid - islandBuilding1.w / 2.0f; // center horizontally
+				buildingPos.y = islandY - islandBuilding1.h + 1; // sit on the island surface
+				islandBuilding1.pasteIntoMap(gameMap, buildingPos);
 			}
 		};
 
