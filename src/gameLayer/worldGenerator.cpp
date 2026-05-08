@@ -381,11 +381,6 @@ void generateWorld
 	int mountainEnd = mountainMid + mountainHalfWidth;
 	int mountainMaxHeight = 60;
 
-	// Sky Island Variables
-	int islandHalfWidth = mountainHalfWidth / 2;
-	
-	int islandHeight = 15; // how tall the island is top to bottom
-
 	// Desert Variables
 	// pick a random start position for the desert
 	// kept away from edges so desert never spawns right at the map border
@@ -421,11 +416,21 @@ void generateWorld
 		mountainEnd = mountainMid + mountainHalfWidth;
 	}
 
+	// Sky Island Variables
+	// island is half the mountain width so it's smaller than the mountain
+	int islandHalfWidth = mountainHalfWidth / 2;
+
+	// how tall the island is top to bottom
+	int islandHeight = 15; 
+
+	// randomly decide which side of the mountain the island spawns on
+	// 50% chance right side, 50% left side
 	bool islandOnRight = getRandomChance(rng, 0.5f);
 
+	// place island just outside mountain bounds with small gap of 10 blocks
 	int islandMid = islandOnRight
-		? mountainEnd + islandHalfWidth + 10
-		: mountainStart - islandHalfWidth - 10;
+		? mountainEnd + islandHalfWidth + 10 // right side - after mountain end
+		: mountainStart - islandHalfWidth - 10; // left side - before mountain start
 
 	// generates the Ice Biom
 	auto addIceBiom = [&]()
@@ -530,6 +535,9 @@ void generateWorld
 							else
 							{
 								b->type = Block::stone;
+
+								// 1% chance per block on mountain to spawn small iron cluster
+								// mountains have iron ore hidden in stone
 								if (getRandomChance(rng, 0.01))
 								{
 									spawnCluster(x, placeY, 2, 3, Block::stone, Block::iron);
@@ -812,15 +820,17 @@ void generateWorld
 		{
 			// ...
 			
-			// peak height with small offset
+			// calculate island Y position - above mountain peak with 10 blocks gap
 			int islandY = dirtHeights[mountainMid] - mountainMaxHeight - 10;
 
 			// bumpy surface tracker
+			// tracks current surface height variation
 			int surfaceOffset = 0;
 			
 			// how many columns until next bump
 			int nextOffsetChange = getRandomInt(rng, 3, 6);
 
+			// loop only within island bounds - no need to check the whole map
 			for (int x = islandMid - islandHalfWidth; x <= islandMid + islandHalfWidth; x++)
 			{
 				
@@ -852,19 +862,13 @@ void generateWorld
 					
 					if (b)
 					{
-						if (i == 0)
-						{
-							b->type = Block::grassBlock; // top row = grass
-						}
-						else
-						{
-							b->type = Block::dirt; // the rest = dirt
-						}
+						if (i == 0) b->type = Block::grassBlock; // top row = grass
+						else		b->type = Block::dirt; // the rest = dirt
 					}
 				}
 			}
 			
-			// paste in the special structure
+			// paste in the special structure in the center on top of the grass
 			if (islandBuilding1.w > 0) // check it loaded successfuly
 			{
 				Vector2 buildingPos;
@@ -900,17 +904,20 @@ void generateWorld
 				// grass block found
 				if (type == Block::grassBlock)
 				{
+					// get block directly above grass
 					auto above = gameMap.getBlockSafe(x, y - 1);
+
+					// only place if space is empty
 					if (above && above->type == Block::air)
 					{
-						if (getRandomChance(rng, 0.9))
+						if (getRandomChance(rng, 0.9)) // 90% chance on grass plant
 						{
 							above->type = Block::grass;
 
 							// also randomly pick a variation 0-3
 							above->variation = getRandomInt(rng, 0, 3);
 						}
-						else
+						else // 10% chance on sappling instead
 						{
 							above->type = Block::sappling;
 							above->variation = getRandomInt(rng, 0, 3);
