@@ -885,10 +885,19 @@ void generateWorld
 					auto above = gameMap.getBlockSafe(x, y - 1);
 					if (above && above->type == Block::air)
 					{
-						above->type = Block::grass;
+						if (getRandomChance(rng, 0.9))
+						{
+							above->type = Block::grass;
 
-						// also randomly pick a variation 0-3
-						above->variation = getRandomInt(rng, 0, 3);
+							// also randomly pick a variation 0-3
+							above->variation = getRandomInt(rng, 0, 3);
+						}
+						else
+						{
+							above->type = Block::sappling;
+							above->variation = getRandomInt(rng, 0, 3);
+						}
+						
 					}
 					break; // stop scanning this column
 				}
