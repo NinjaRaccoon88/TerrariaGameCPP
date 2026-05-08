@@ -815,7 +815,7 @@ void generateWorld
 				if (!blockAbove || blockAbove->type != Block::air) { break; }
 
 				// found surface (grass or snow (ice biom exclusive))
-				if (type == Block::grassBlock || (inIce) && type == Block::snow)
+				if (type == Block::grassBlock || (inIce && type == Block::snow))
 				{
 					
 					// pick a random category then random tree from it
@@ -886,7 +886,7 @@ void generateWorld
 						Vector2 spawnPos{ (float)x, (float)y };
 
 						spawnPos.x -= chosenTree->w / 2.0f; // center tree horizontally on column
-						spawnPos.y -= chosenTree->h; // place tree above grass block
+						spawnPos.y -= chosenTree->h - 1; // place tree above grass/snow block
 
 						chosenTree->pasteIntoMap(gameMap, spawnPos);
 
@@ -934,6 +934,7 @@ void generateWorld
 	- ice biom - DONE
 	- different kinds of Ores - DONE
 	- Ice Biom tree structures - DONE
+	- grass layer on grass blocks
 */
 
 /*
