@@ -521,6 +521,10 @@ void generateWorld
 							else
 							{
 								b->type = Block::stone;
+								if (getRandomChance(rng, 0.01))
+								{
+									spawnCluster(x, placeY, 2, 3, Block::stone, Block::iron);
+								}
 							}
 						}
 					}
