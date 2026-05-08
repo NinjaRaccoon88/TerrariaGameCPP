@@ -878,6 +878,33 @@ void generateWorld
 			}
 		};
 
+	// clusters of gems on cave walls
+	auto addCrystalCaves = [&]()
+		{
+			// ...
+
+		};
+
+	// bone brick lined underground rooms
+	auto addBoneCaves = [&]()
+		{
+			// ...
+
+		};
+
+	// magma pools at the bottom of caves
+	auto addLavaCaves = [&]()
+		{
+			// ...
+
+		};
+
+	// custom cave helper :D
+	auto addSpecialCave = [&]()
+		{
+
+		};
+
 	// Calling lambda functions (finally LFG!)
 	createStoneLayer();		// 1. Build base terrain (must be first)
 	addDesert();			// 2. Replace blocks in desert area (generate desert biom)
@@ -1080,12 +1107,15 @@ void generateWorld
 	- Ice Biom tree structures - DONE
 	- sky islands - DONE
 	- grass layer on grass blocks - DONE
+
 	- special structures - In Progress
+	- crystal cave - In Progress
+	- bone cave - In Progress
+	- lava cave - In Progress
 */
 
 /*
 	Roadmap:
-	- different types of caves
 	- dungeons
 	- procedural structures made of multiple pieces
 */
