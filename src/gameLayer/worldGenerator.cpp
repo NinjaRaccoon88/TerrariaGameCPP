@@ -372,6 +372,11 @@ void generateWorld
 	int mountainEnd = mountainMid + mountainHalfWidth;
 	int mountainMaxHeight = 60;
 
+	// Sky Island Variables
+	int islandHalfWidth = mountainHalfWidth / 2;
+	
+	int islandHeight = 15; // how tall the island is top to bottom
+
 	// Desert Variables
 	// pick a random start position for the desert
 	// kept away from edges so desert never spawns right at the map border
@@ -406,6 +411,12 @@ void generateWorld
 		mountainStart = mountainMid - mountainHalfWidth;
 		mountainEnd = mountainMid + mountainHalfWidth;
 	}
+
+	bool islandOnRight = getRandomChance(rng, 0.5f);
+
+	int islandMid = islandOnRight
+		? mountainEnd + islandHalfWidth + 10
+		: mountainStart - islandHalfWidth - 10;
 
 	// generates the Ice Biom
 	auto addIceBiom = [&]()
@@ -783,6 +794,64 @@ void generateWorld
 			}
 		};
 
+	// creates sky island
+	auto addSkyIsland = [&]()
+		{
+			// ...
+			
+			// peak height with small offset
+			int islandY = dirtHeights[mountainMid] - mountainMaxHeight - 10;
+
+			// bumpy surface tracker
+			int surfaceOffset = 0;
+			
+			// how many columns until next bump
+			int nextOffsetChange = getRandomInt(rng, 3, 6);
+
+			for (int x = islandMid - islandHalfWidth; x <= islandMid + islandHalfWidth; x++)
+			{
+				
+				// how far is current column from the center (always positive due to abs)
+				int distanceFromIslandMid = std::abs(x - islandMid);
+
+				// this creates a smoother gradient from edge to center
+				float t = 1.0f - distanceFromIslandMid / (float)islandHalfWidth;
+
+				// how many blocks tall this column is - full height at center, 0 at edges
+				int colHeight = (int)(islandHeight * t);
+
+				// bumpy surface - randomly step offset every few colums
+				nextOffsetChange--;
+				if (nextOffsetChange <= 0)
+				{
+					surfaceOffset += getRandomInt(rng, -1, 1); // step up or down by 1 block
+					surfaceOffset = std::clamp(surfaceOffset, -2, 2); // don't go too crazy
+					nextOffsetChange = getRandomInt(rng, 3, 6); // reset the timer
+				}
+
+				// top of island Y position for this column
+				int topY = islandY + surfaceOffset;
+
+				for (int i = 0; i < colHeight; i++)
+				{
+
+					auto b = gameMap.getBlockSafe(x, topY + i);
+					
+					if (b)
+					{
+						if (i == 0)
+						{
+							b->type = Block::grassBlock; // top row = grass
+						}
+						else
+						{
+							b->type = Block::dirt; // the rest = dirt
+						}
+					}
+				}
+			}
+		};
+
 	// Calling lambda functions (finally LFG!)
 	createStoneLayer();		// 1. Build base terrain (must be first)
 	addDesert();			// 2. Replace blocks in desert area (generate desert biom)
@@ -917,6 +986,7 @@ void generateWorld
 #pragma endregion WormSpawner
 	addRandomSand();		// 9. Random sand
 	addOres();				// 10. Scatter ores underground (must be after caves and sand)
+	addSkyIsland();
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
@@ -934,6 +1004,7 @@ void generateWorld
 	- ice biom - DONE
 	- different kinds of Ores - DONE
 	- Ice Biom tree structures - DONE
+	- sky islands - DONE
 	- grass layer on grass blocks
 */
 
@@ -943,5 +1014,4 @@ void generateWorld
 	- dungeons
 	- special structures
 	- procedural structures made of multiple pieces
-	- sky islands
 */
