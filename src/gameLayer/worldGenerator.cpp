@@ -862,14 +862,51 @@ void generateWorld
 	addIceBiom();			// 3. Generate Ice Biom
 	addOneExtraMountain();  // 4. Raise terrain for mountain
 	addNormalCaves();		// 5. Carve out cave systems
-							// 6. Place trees on grass surface (needs refactoring)
-#pragma region TreeSpawner
-	// Spawning tree structure randomly on the grass block
-	// TODO: Upgrade this code (tree variations and etc)
+	addRandomSand();		// 6. Random sand
+							// 7. Spawning grass on grass block surface
+#pragma region GrassSpawner
+	// Spawning grass randomly on grass blocks
 	for (int x = 0; x < w; x++)
 	{
-		// 4% chance per column to attempt tree spawning
-		if (getRandomChance(rng, 0.1)) // 10% chance on spawning a tree
+		// 33% chance to spawn a grass on a grass block
+		if (getRandomChance(rng, 0.33f))
+		{
+			
+			for (int y = 0; y < h; y++)
+			{
+				auto type = gameMap.getBlockUnsafe(x, y).type;
+
+				// skip air, scanning down
+				if (type == Block::air) { continue; }
+
+				// grass block found
+				if (type == Block::grassBlock)
+				{
+					auto above = gameMap.getBlockSafe(x, y - 1);
+					if (above && above->type == Block::air)
+					{
+						above->type = Block::grass;
+
+						// also randomly pick a variation 0-3
+						above->variation = getRandomInt(rng, 0, 3);
+					}
+					break; // stop scanning this column
+				}
+				else 
+				{
+					break; // hit solid non grass block, stop scanning
+				}
+			}
+		}
+	}
+#pragma endregion GrassSpawner
+							// 8. Place trees on grass surface (needs refactoring)
+#pragma region TreeSpawner
+	// Spawning tree structure randomly on the grass block
+	for (int x = 0; x < w; x++)
+	{
+		// 10% chance per column to attempt tree spawning
+		if (getRandomChance(rng, 0.1))
 		{
 
 			for (int y = 0; y < h; y++)
@@ -974,8 +1011,8 @@ void generateWorld
 		}
 	}
 #pragma endregion TreeSpawner
-	dirtLayer();			// 7. Randomly replace some grass with dirt
-							// 8. Carve organic worm tunnels
+	dirtLayer();			// 9. Randomly replace some grass with dirt
+							// 10. Carve organic worm tunnels
 #pragma region WormSpawner
 	for (int i = 0; i < 12; i++) // spawn 12 worms total
 	{
@@ -988,8 +1025,7 @@ void generateWorld
 		);
 	}
 #pragma endregion WormSpawner
-	addRandomSand();		// 9. Random sand
-	addOres();				// 10. Scatter ores underground (must be after caves and sand)
+	addOres();				// 11. Scatter ores underground (must be after caves and sand)
 	addSkyIsland();
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
@@ -1009,13 +1045,13 @@ void generateWorld
 	- different kinds of Ores - DONE
 	- Ice Biom tree structures - DONE
 	- sky islands - DONE
-	- grass layer on grass blocks
+	- grass layer on grass blocks - DONE
+	- special structures - In Progress
 */
 
 /*
 	Roadmap:
 	- different types of caves
 	- dungeons
-	- special structures
 	- procedural structures made of multiple pieces
 */
