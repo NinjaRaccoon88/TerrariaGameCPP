@@ -257,22 +257,6 @@ void generateWorld
 				radius = std::clamp(radius, 2.2f, maxR);
 			}
 		};
-
-	/* TODO: lambda functions for :
-	- dirt layer - DONE
-	- stone layer - DONE
-	- normal caves - DONE
-	- extra mountain - DONE
-
-	LATER:
-	- different types of caves
-	- dungeons
-	- special structures
-	- procedural structures made of multiple pieces
-	- ores - DONE
-	- ice biom - DONE (almost - needs ore)
-	- sky islands
-	*/ 
 	
 #pragma region spawnCluster
 	auto spawnCluster = [&]
@@ -817,13 +801,21 @@ void generateWorld
 
 			for (int y = 0; y < h; y++)
 			{
-				auto type = gameMap.getBlockUnsafe(x, y).type;
-				if (type == Block::air) // skip air, keep scanning down
-				{
-					continue;
-				}
+				// check whether are we in Ice biom or no
+				bool inIce(x >= iceStart && x <= iceEnd);
 
-				if (type == Block::grassBlock) // found surface
+				auto type = gameMap.getBlockUnsafe(x, y).type;
+
+				// skip air, keep scanning down
+				if (type == Block::air) { continue; }
+				
+				auto blockAbove = gameMap.getBlockSafe(x, y - 1);
+
+				// not surface, underground snow/grass block, stop scanning 
+				if (!blockAbove || blockAbove->type != Block::air) { break; }
+
+				// found surface (grass or snow (ice biom exclusive))
+				if (type == Block::grassBlock || (inIce) && type == Block::snow)
 				{
 					
 					// pick a random category then random tree from it
@@ -831,27 +823,61 @@ void generateWorld
 					Structure* chosenTree = nullptr; // pointer to whichever tree we pick
 					int spacing = 1; // how many blocks to skip after planting to prevent overlpping 
 
-					// empty() check prevents crash if a bin file failed to load
-					if (category == 0 && !smallTrees.empty())
+					if (inIce)
 					{
-						// getRandomInt picks a random index within a vector
-						chosenTree = &smallTrees[getRandomInt(rng, 0, smallTrees.size() - 1)];
-						spacing = 1;
+						// ice biom uses small snow trees and regular small trees
+						if (category == 0)
+						{
+							if (getRandomChance(rng, 0.5f) && !smallTrees.empty())
+							{
+								chosenTree = &smallTrees[getRandomInt(rng, 0, smallTrees.size() - 1)];
+							}
+							else if (!snowSmallTrees.empty())
+							{
+								chosenTree = &snowSmallTrees[getRandomInt(rng, 0, snowSmallTrees.size() - 1)];
+							}
+							spacing = 1;
+						}
+						else if (category == 1 && !snowMediumTrees.empty())
+						{
+							chosenTree = &snowMediumTrees[getRandomInt(rng, 0, snowMediumTrees.size() - 1)];
+							spacing = 5;
+						}
+						else if (category == 2 && !snowLargeTrees.empty())
+						{
+							chosenTree = &snowLargeTrees[getRandomInt(rng, 0, snowLargeTrees.size() - 1)];
+							spacing = 7;
+						}
+						else if (category == 3 && !snowHugeTrees.empty())
+						{
+							chosenTree = &snowHugeTrees[getRandomInt(rng, 0, snowHugeTrees.size() - 1)];
+							spacing = 9;
+						}
 					}
-					else if (category == 1 && !mediumTrees.empty())
+					else
 					{
-						chosenTree = &mediumTrees[getRandomInt(rng, 0, mediumTrees.size() - 1)];
-						spacing = 4;
-					}
-					else if (category == 2 && !largeTrees.empty())
-					{
-						chosenTree = &largeTrees[getRandomInt(rng, 0, largeTrees.size() - 1)];
-						spacing = 6;
-					}
-					else if (category == 3 && !hugeTrees.empty())
-					{
-						chosenTree = &hugeTrees[getRandomInt(rng, 0, hugeTrees.size() - 1)];
-						spacing = 9;
+						// empty() check prevents crash if a bin file failed to load
+						if (category == 0 && !smallTrees.empty())
+						{
+							// getRandomInt picks a random index within a vector
+							chosenTree = &smallTrees[getRandomInt(rng, 0, smallTrees.size() - 1)];
+							spacing = 1;
+						}
+						else if (category == 1 && !mediumTrees.empty())
+						{
+							chosenTree = &mediumTrees[getRandomInt(rng, 0, mediumTrees.size() - 1)];
+							spacing = 4;
+						}
+						else if (category == 2 && !largeTrees.empty())
+						{
+							chosenTree = &largeTrees[getRandomInt(rng, 0, largeTrees.size() - 1)];
+							spacing = 6;
+						}
+						else if (category == 3 && !hugeTrees.empty())
+						{
+							chosenTree = &hugeTrees[getRandomInt(rng, 0, hugeTrees.size() - 1)];
+							spacing = 9;
+						}
 					}
 
 					// only spawn if we actually picked a tree and it has valid data
@@ -899,3 +925,22 @@ void generateWorld
 	FastNoiseSIMD::FreeNoiseSet(caveNoise2);
 	FastNoiseSIMD::FreeNoiseSet(caveBlendNoise);
 }
+
+/* TODO:
+	- dirt layer - DONE
+	- stone layer - DONE
+	- normal caves - DONE
+	- extra mountain - DONE
+	- ice biom - DONE
+	- different kinds of Ores - DONE
+	- Ice Biom tree structures - DONE
+*/
+
+/*
+	Roadmap:
+	- different types of caves
+	- dungeons
+	- special structures
+	- procedural structures made of multiple pieces
+	- sky islands
+*/
