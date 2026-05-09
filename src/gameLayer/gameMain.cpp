@@ -233,10 +233,9 @@ bool updateGame()
 			// only draw if block is not air (no point drawing empty block)
 			if (b.type != Wall::air)
 			{
-				// I have no idea why (-3) but if it works - it works
-				// I added 3 new blocks to the texture and there is air block
-				// so maybe I need to do -4 for those 4 blocks, welp
-				Rectangle sourceRect = getTextureAtlas(b.type - 4 + Block::BLOCKS_COUNT, b.variation, 32, 32);
+				// IMPORTANT: WHEN ADDING A NEW BLOCK TYPE - INCREASE THE NUMBER BELOW
+				// haven't find the fix yet
+				Rectangle sourceRect = getTextureAtlas(b.type - 5 + Block::BLOCKS_COUNT, b.variation, 32, 32);
 
 				// Drawing
 				DrawTexturePro

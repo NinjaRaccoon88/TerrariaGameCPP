@@ -17,7 +17,7 @@ struct BlockSaveRepresentation1
 		return b;
 	}
 };
-// VERSION 2 - current format, added durability
+// VERSION 2 - added durability
 struct BlockSaveRepresentation2 
 {
 
@@ -34,9 +34,28 @@ struct BlockSaveRepresentation2
 	}
 };
 
+// VERSION 3 - current format, added variation
+struct BlockSaveRepresentation3
+{
+
+	std::uint16_t type = 0;
+	std::uint16_t durability = 0; // new field added in v2
+	std::uint16_t variation = 0; // new field added in v3
+
+	// converts this format into a modern Block
+	Block toBlock()
+	{
+		Block b;
+		b.type = type;
+		b.durability = durability;
+		b.variation = variation; // now blocks have different variation when being generated
+		return b;
+	}
+};
+
 // this number gets written to every save file
 // current version of the file save system
-const int VERSION = 2;
+const int VERSION = 3;
 
 BlockSaveRepresentation2 toBlockRepresentation(Block b)
 {
@@ -159,6 +178,31 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 				}
 
 				blocks[i] = read.toBlock(); // converts V2 data to modern block
+			}
+
+			break;
+		}
+		case 3:
+		{
+			// read block data
+			size_t blockCount = w * h;
+			blocks.resize(blockCount);
+
+			for (int i = 0; i < blockCount; i++)
+			{
+				BlockSaveRepresentation3 read; // use V3 struct to read V3 data
+				f.read((char*)&read, sizeof(read)); // reads the type, durability and variation
+
+				if (!f)
+				{
+					blocks.clear();
+					w = 0;
+					h = 0;
+					f.close();
+					return false;
+				}
+
+				blocks[i] = read.toBlock(); // converts V3 data to modern block
 			}
 
 			break;

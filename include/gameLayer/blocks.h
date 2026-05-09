@@ -62,6 +62,7 @@ struct Block
 		head,
 		skin,
 		snowLeaves,
+		magma,
 
 		BLOCKS_COUNT
 

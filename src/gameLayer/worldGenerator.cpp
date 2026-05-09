@@ -878,11 +878,108 @@ void generateWorld
 			}
 		};
 
+	// custom cave helper :D
+	auto addSpecialCave = [&]
+	(
+		float startX , float startY, float radius, // starting position and radius
+		int wallBlock,
+		int floorBlock,
+		int ceilingBlock, 
+		int oreBlock, float oreChance
+	)
+		{
+			// ...
+
+			// pick a random spawn position
+			// IMPORTANT: make them float
+			float x = startX;
+			float y = startY;
+
+			int widthRadius = radius; // how wide
+			int heightRadius = radius / 2; // half as tall - oval shape 
+
+			// PASS 1 - carve the oval room
+			// loop every single block in a square around current position
+			for (int ox = -widthRadius; ox <= widthRadius; ox++)
+			{
+				for (int oy = -heightRadius; oy <= heightRadius; oy++)
+				{
+
+					// oval distance check - if <= 1.0 we're inside the oval
+					float distSq = (float)(ox * ox) / (widthRadius * widthRadius)
+								 + (float)(oy * oy) / (heightRadius * heightRadius);
+
+					if (distSq <= 1.0f)
+					{
+						auto b = gameMap.getBlockSafe((int)x + ox, (int)y + oy);
+						if (b) b->type = Block::air; // DEBUG PURPOSE - Ruby
+					}
+				}
+			}
+
+			// PASS 2 - decorate walls, ceiling and floor
+			for (int ox = -widthRadius; ox <= widthRadius; ox++)
+			{
+				for (int oy = -heightRadius; oy <= heightRadius; oy++)
+				{
+					int bx = (int)x + ox;
+					int by = (int)y + oy;
+
+					auto b = gameMap.getBlockSafe(bx, by);
+
+					if (!b || b->type == Block::air) { continue; }
+
+					// check if this solid block is touching any air (it's a wall)
+					auto up = gameMap.getBlockSafe(bx, by - 1);
+					auto down = gameMap.getBlockSafe(bx, by + 1);
+					auto left = gameMap.getBlockSafe(bx - 1, by);
+					auto right = gameMap.getBlockSafe(bx + 1, by);
+
+					bool touchesAir = 
+						(up		&& up->type		== Block::air) ||
+						(down	&& down->type	== Block::air) ||
+						(right	&& right->type	== Block::air) ||
+						(left	&& left->type	== Block::air);
+					
+					if (touchesAir)
+					{
+						// ceiling = top half of room
+						if (oy < 0 && ceilingBlock != Block::air)
+							b->type = ceilingBlock;
+						// floor = bototm row only
+						else if (oy == heightRadius && floorBlock != Block::air)
+							b->type = floorBlock;
+						else if (wallBlock != Block::air)
+							b->type = wallBlock;
+
+						// chance to spawn ore cluster on the wall
+						if (oreBlock != Block::air && getRandomChance(rng, oreChance))
+							spawnCluster(bx, by, 2, 4, wallBlock, oreBlock);
+					}
+				}
+			}
+
+		};
+
 	// clusters of gems on cave walls
 	auto addCrystalCaves = [&]()
 		{
 			// ...
 
+			for (int i = 0; i < 4; i++)
+			{
+				addSpecialCave
+				(
+					getRandomInt(rng, 10, w - 10),
+					getRandomInt(rng, 100, h - 10),
+					10.f, // radius
+					Block::ice, // wall
+					Block::ice, // floor
+					Block::ice, // ceiling
+					Block::snowBlueRuby, // ore on walls
+					0.05f // 5% chance per wall block
+				);
+			}
 		};
 
 	// bone brick lined underground rooms
@@ -890,6 +987,20 @@ void generateWorld
 		{
 			// ...
 
+			for (int i = 0; i < 4; i++)
+			{
+				addSpecialCave
+				(
+					getRandomInt(rng, 10, w - 10),
+					getRandomInt(rng, 100, h - 10),
+					10.f, /// radius
+					Block::boneBricks,
+					Block::boneBricks,
+					Block::boneBricks,
+					Block::air, // no ore
+					0.0f
+				);
+			}
 		};
 
 	// magma pools at the bottom of caves
@@ -897,12 +1008,20 @@ void generateWorld
 		{
 			// ...
 
-		};
-
-	// custom cave helper :D
-	auto addSpecialCave = [&]()
-		{
-
+			for (int i = 0; i < 4; i++)
+			{
+				addSpecialCave
+				(
+					getRandomInt(rng, 10, w - 10),
+					getRandomInt(rng, 100, h - 10),
+					10.0f,
+					Block::stone,
+					Block::magma,
+					Block::dirt,
+					Block::air,
+					0.0f
+				);
+			}
 		};
 
 	// Calling lambda functions (finally LFG!)
@@ -1089,6 +1208,10 @@ void generateWorld
 	addOres();				// 11. Scatter ores underground (must be after caves and sand)
 	addSkyIsland();
 
+	addCrystalCaves();
+	addBoneCaves();
+	addLavaCaves();
+
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
@@ -1112,6 +1235,8 @@ void generateWorld
 	- crystal cave - In Progress
 	- bone cave - In Progress
 	- lava cave - In Progress
+
+	- block variations (when spawning) - In Progress
 */
 
 /*
