@@ -895,32 +895,64 @@ void generateWorld
 			float x = startX;
 			float y = startY;
 
-			int widthRadius = radius; // how wide
-			int heightRadius = radius / 2; // half as tall - oval shape 
+			int widthRadius = radius; // how wide (horizontal radius)
+			int heightRadius = radius / 2; // half as tall - oval shape
+
+			// number of ovals we create
+			// instead of one perfect oval, we create 2-4 ovals with slight offset from center
+			int numChambers = getRandomInt(rng, 2, 4);
+			std::vector<std::pair<float, float>> chambers;
+
+			for (int i = 0; i < numChambers; i++)
+			{
+				float offsetX = getRandomFloat(rng, -radius * 0.5f, radius * 0.5f);
+				float offsetY = getRandomFloat(rng, -radius * 0.3f, radius * 0.3f);
+				chambers.push_back({ offsetX, offsetY });
+			}
 
 			// PASS 1 - carve the oval room
-			// loop every single block in a square around current position
-			for (int ox = -widthRadius; ox <= widthRadius; ox++)
+			// loop each chamber offset
+			for (auto& [cx, cy] : chambers)
 			{
-				for (int oy = -heightRadius; oy <= heightRadius; oy++)
+				// loop every single block in a square around current position
+				for (int ox = -widthRadius; ox <= widthRadius; ox++) // every column
 				{
-
-					// oval distance check - if <= 1.0 we're inside the oval
-					float distSq = (float)(ox * ox) / (widthRadius * widthRadius)
-								 + (float)(oy * oy) / (heightRadius * heightRadius);
-
-					if (distSq <= 1.0f)
+					for (int oy = -heightRadius; oy <= heightRadius; oy++) // every row
 					{
-						auto b = gameMap.getBlockSafe((int)x + ox, (int)y + oy);
-						if (b) b->type = Block::air; // DEBUG PURPOSE - Ruby
+						/* 
+						ox and oy are offsets from the chamber center.We're visiting every
+						block in a rectangle around each chamber position
+						*/
+
+						// oval distance check if we're inside the oval
+						float distSq = (float)(ox * ox) / (widthRadius * widthRadius)
+							+ (float)(oy * oy) / (heightRadius * heightRadius);
+
+						// we use oval distance formula - ox*ox + oy*oy <= radius*radius
+						float noise = getCaveNoise((int)(x + cx) + ox, (int)(y + cy) + oy);
+						//noise is 0-1, we want it to wobble the threshold slightly
+						// center of oval (distSq near 0) always carves
+						// edge of oval (distSq near 1) gets randomised by noise
+						float threshold = 0.85f + noise * 0.3f; // wobbles between 0.85 and 1.15
+
+						// instead of 1.0, we carve edge blocks randomly - looks more natural
+						if (distSq <= threshold)
+						{
+							auto b = gameMap.getBlockSafe((int)(x + cx) + ox, (int)(y + cy) + oy);
+							if (b) b->type = Block::air;
+						}
 					}
 				}
 			}
 
 			// PASS 2 - decorate walls, ceiling and floor
-			for (int ox = -widthRadius; ox <= widthRadius; ox++)
+
+			// we scan way bigger area than pass1 , we cover all chambers including their offset
+			int decorRadius = widthRadius + (int)(radius * 0.5f) + 2;
+
+			for (int ox = -decorRadius; ox <= decorRadius; ox++)
 			{
-				for (int oy = -heightRadius; oy <= heightRadius; oy++)
+				for (int oy = -decorRadius; oy <= decorRadius; oy++)
 				{
 					int bx = (int)x + ox;
 					int by = (int)y + oy;
@@ -946,11 +978,11 @@ void generateWorld
 						// ceiling = top half of room
 						if (oy < 0 && ceilingBlock != Block::air)
 							b->type = ceilingBlock;
-						// floor = bototm row only
-						else if (oy == heightRadius && floorBlock != Block::air)
+						// floor = bottom row only
+						else if (oy >= heightRadius && floorBlock != Block::air)
 							b->type = floorBlock;
 						else if (wallBlock != Block::air)
-							b->type = wallBlock;
+							b->type = wallBlock; // everything else = wall
 
 						// chance to spawn ore cluster on the wall
 						if (oreBlock != Block::air && getRandomChance(rng, oreChance))
@@ -966,20 +998,36 @@ void generateWorld
 		{
 			// ...
 
-			for (int i = 0; i < 4; i++)
-			{
-				addSpecialCave
-				(
-					getRandomInt(rng, 10, w - 10),
-					getRandomInt(rng, 100, h - 10),
-					10.f, // radius
-					Block::ice, // wall
-					Block::ice, // floor
-					Block::ice, // ceiling
-					Block::snowBlueRuby, // ore on walls
-					0.05f // 5% chance per wall block
-				);
-			}
+				for (int i = 0; i < 4; i++)
+				{
+
+					// keep rerolling until position is valid
+					float cx, cy;
+
+					// do-while guarantees we pick at least once before checking the condition
+					// don't use while here cuz cx,cy don't have any value yet
+					do {
+						// pick random x,y location on the map
+						cx = getRandomInt(rng, 10, w - 10);
+						cy = getRandomInt(rng, 100, h - 10);
+
+						// if we're inside desert or ice biom - repick
+					} while ((cx > desertStart && cx < desertEnd) ||
+						(cx > iceStart && cx < iceEnd) ||
+						(cy < dirtHeights[(int)cx] + 50));
+
+					addSpecialCave
+					(
+						cx,
+						cy,
+						10.f, // radius
+						Block::ice, // wall
+						Block::ice, // floor
+						Block::ice, // ceiling
+						Block::snowBlueRuby, // ore on walls
+						0.05f // 5% chance per wall block
+					);
+				}
 		};
 
 	// bone brick lined underground rooms
@@ -989,10 +1037,26 @@ void generateWorld
 
 			for (int i = 0; i < 4; i++)
 			{
+
+				// keep rerolling until position is valid
+				float cx, cy;
+
+				// do-while guarantees we pick at least once before checking the condition
+				// don't use while here cuz cx,cy don't have any value yet
+				do {
+					// pick random x,y location on the map
+					cx = getRandomInt(rng, 10, w - 10);
+					cy = getRandomInt(rng, 100, h - 10);
+
+					// if we're inside desert or ice biom - repick
+				} while ((cx > desertStart && cx < desertEnd) ||
+					(cx > iceStart && cx < iceEnd) ||
+					(cy < dirtHeights[(int)cx] + 50));
+
 				addSpecialCave
 				(
-					getRandomInt(rng, 10, w - 10),
-					getRandomInt(rng, 100, h - 10),
+					cx,
+					cy,
 					10.f, /// radius
 					Block::boneBricks,
 					Block::boneBricks,
@@ -1010,16 +1074,32 @@ void generateWorld
 
 			for (int i = 0; i < 4; i++)
 			{
+
+				// keep rerolling until position is valid
+				float cx, cy;
+
+				// do-while guarantees we pick at least once before checking the condition
+				// don't use while here cuz cx,cy don't have any value yet
+				do {
+					// pick random x,y location on the map
+					cx = getRandomInt(rng, 10, w - 10);
+					cy = getRandomInt(rng, 100, h - 10);
+
+					// if we're inside desert or ice biom - repick
+				} while ((cx > desertStart && cx < desertEnd) ||
+					(cx > iceStart && cx < iceEnd) ||
+					(cy < dirtHeights[(int)cx] + 50));
+
 				addSpecialCave
 				(
-					getRandomInt(rng, 10, w - 10),
-					getRandomInt(rng, 100, h - 10),
+					cx,
+					cy,
 					10.0f,
 					Block::stone,
 					Block::magma,
 					Block::dirt,
 					Block::air,
-					0.0f
+					0.f
 				);
 			}
 		};
@@ -1230,12 +1310,12 @@ void generateWorld
 	- Ice Biom tree structures - DONE
 	- sky islands - DONE
 	- grass layer on grass blocks - DONE
+	- crystal cave - DONE
+	- bone cave - DONE
+	- lava cave - DONE
+	- more natural custom caves - DONE
 
 	- special structures - In Progress
-	- crystal cave - In Progress
-	- bone cave - In Progress
-	- lava cave - In Progress
-
 	- block variations (when spawning) - In Progress
 */
 
