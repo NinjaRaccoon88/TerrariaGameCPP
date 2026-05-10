@@ -308,6 +308,7 @@ void generateWorld
 				if (b && b->type == replaceType)
 				{
 					b->type = placeType;
+					b->variation = getRandomInt(rng, 0, 3);
 				}
 			}
 		};
@@ -531,10 +532,12 @@ void generateWorld
 							if (i > riseAmount * 0.8) // top 20% -> snow
 							{
 								b->type = Block::snow;
+								b->variation = getRandomInt(rng, 0, 3);
 							}
 							else
 							{
 								b->type = Block::stone;
+								b->variation = getRandomInt(rng, 0, 3);
 
 								// 1% chance per block on mountain to spawn small iron cluster
 								// mountains have iron ore hidden in stone
@@ -562,15 +565,16 @@ void generateWorld
 					for (int y = 0; y < h; y++)
 					{
 						// get current block type
-						auto type = gameMap.getBlockUnsafe(x, y).type;
-						if (type == Block::air)
+						auto &b = gameMap.getBlockUnsafe(x, y);
+						if (b.type == Block::air)
 						{
 							continue; // if it's not ground, we continue searching
 						}
 						// we need to find surface (grass block)
-						if (type == Block::grassBlock)
+						if (b.type == Block::grassBlock)
 						{
-							gameMap.getBlockUnsafe(x, y).type = Block::dirt;
+							b.type = Block::dirt;
+							b.variation = getRandomInt(rng, 0, 3);
 						}
 						else
 						{
@@ -658,9 +662,21 @@ void generateWorld
 				{
 					auto& b = gameMap.getBlockUnsafe(x, y); // reference to the existing block
 
-					if (b.type == Block::grassBlock) b.type = grassType;
-					else if (b.type == Block::dirt)  b.type = dirtType;
-					else if (b.type == Block::stone) b.type = stoneType;
+					if (b.type == Block::grassBlock)
+					{
+						b.type = grassType;
+						b.variation = getRandomInt(rng, 0, 3);
+					}
+					else if (b.type == Block::dirt)
+					{
+						b.type = dirtType;
+						b.variation = getRandomInt(rng, 0, 3);
+					}
+					else if (b.type == Block::stone)
+					{
+						b.type = stoneType;
+						b.variation = getRandomInt(rng, 0, 3);
+					}
 
 					if (inDesert) // desert
 					{
@@ -675,6 +691,7 @@ void generateWorld
 						if (y > triangleStoneY)
 						{
 							b.type = Block::stone;
+							b.variation = getRandomInt(rng, 0, 3);
 						}
 					}
 				}
@@ -862,8 +879,16 @@ void generateWorld
 					
 					if (b)
 					{
-						if (i == 0) b->type = Block::grassBlock; // top row = grass
-						else		b->type = Block::dirt; // the rest = dirt
+						if (i == 0)
+						{
+							b->type = Block::grassBlock; // top row = grass
+							b->variation = getRandomInt(rng, 0, 3);
+						}
+						else 
+						{
+							b->type = Block::dirt; // the rest = dirt
+							b->variation = getRandomInt(rng, 0, 3);
+						}
 					}
 				}
 			}
@@ -977,12 +1002,21 @@ void generateWorld
 					{
 						// ceiling = top half of room
 						if (oy < 0 && ceilingBlock != Block::air)
+						{
 							b->type = ceilingBlock;
+							b->variation = getRandomInt(rng, 0, 3);
+						}
 						// floor = bottom row only
 						else if (oy >= heightRadius && floorBlock != Block::air)
+						{
 							b->type = floorBlock;
+							b->variation = getRandomInt(rng, 0, 3);
+						}
 						else if (wallBlock != Block::air)
+						{
 							b->type = wallBlock; // everything else = wall
+							b->variation = getRandomInt(rng, 0, 3);
+						}
 
 						// chance to spawn ore cluster on the wall
 						if (oreBlock != Block::air && getRandomChance(rng, oreChance))
@@ -1288,9 +1322,9 @@ void generateWorld
 	addOres();				// 11. Scatter ores underground (must be after caves and sand)
 	addSkyIsland();
 
-	addCrystalCaves();
-	addBoneCaves();
-	addLavaCaves();
+	addCrystalCaves();		// 12. Generate crystal cave
+	addBoneCaves();			// 13. Generate bone cave
+	addLavaCaves();			// 14. Generate lava cave
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
@@ -1314,13 +1348,14 @@ void generateWorld
 	- bone cave - DONE
 	- lava cave - DONE
 	- more natural custom caves - DONE
+	- block variations (when spawning) - DONE
+	- special structure - DONE
 
-	- special structures - In Progress
-	- block variations (when spawning) - In Progress
+	- dungeons - In Progress
+	- procedural structures made of multiple pieces - In Progress
 */
 
 /*
 	Roadmap:
-	- dungeons
-	- procedural structures made of multiple pieces
+	empty
 */
