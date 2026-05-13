@@ -87,6 +87,22 @@ void generateWorld
 	loadTree(snowHugeTrees, RESOURCES_PATH "structures/snowTree6.bin");
 #pragma endregion loadTree
 
+	Structure treasureRoom;
+	loadBlockDataToFile
+	(
+		treasureRoom.mapData,
+		treasureRoom.w, treasureRoom.h,
+		RESOURCES_PATH "structures/treasureRoom.bin"
+	);
+
+	Structure guardRoom;
+	loadBlockDataToFile
+	(
+		guardRoom.mapData,
+		guardRoom.w, guardRoom.h,
+		RESOURCES_PATH "structure/guardRoom.bin"
+	);
+
 	// Create two separate noise generators - for dirt and for stone layers
 	// unique_ptr automatically frees memory when it goes out of scope
 	std::unique_ptr<FastNoiseSIMD> dirtNoiseGenerator(FastNoiseSIMD::NewFastNoiseSIMD());
@@ -432,6 +448,50 @@ void generateWorld
 	int islandMid = islandOnRight
 		? mountainEnd + islandHalfWidth + 10 // right side - after mountain end
 		: mountainStart - islandHalfWidth - 10; // left side - before mountain start
+
+	// Pyramid variables
+	int pyramidMid = getRandomInt(rng, 100, w - 100);
+	int pyramidHalfBase = 34; // half of 68 block wide base
+	int pyramidHeight = 34; // 34 blocks tall
+
+	// keep repicking until pyramid doesn't overlap biomes or mountain
+	while ((pyramidMid > desertStart - 50 && pyramidMid < desertEnd + 50) ||
+		(pyramidMid > mountainStart - 50 && pyramidMid < mountainEnd + 50) ||
+		(pyramidMid > iceStart - 50 && pyramidMid < iceEnd + 50))
+	{
+		pyramidMid = getRandomInt(rng, 100, w - 100);
+	}
+
+	// generate pyramid underground
+	auto addPyramid = [&]()
+		{
+			// ...
+
+			int pyramidBaseY = stoneHeights[pyramidMid] + 60; // will be set after createStoneLayer runs
+
+			for (int row = 0; row <= pyramidHeight; row++)
+			{
+				// ...
+
+				int leftEdge = pyramidMid - (pyramidHalfBase - row);
+				int rightEdge = pyramidMid + (pyramidHalfBase - row);
+				int placeY = pyramidBaseY - row;
+
+				// fill every column in this row
+				for (int x = leftEdge; x <= rightEdge; x++)
+				{
+					auto b = gameMap.getBlockSafe(x, placeY);
+
+					if (b)
+					{
+						b->type = Block::sandStone;
+					}
+				}
+
+
+
+			}
+		};
 
 	// generates the Ice Biom
 	auto addIceBiom = [&]()
@@ -1326,6 +1386,8 @@ void generateWorld
 	addBoneCaves();			// 13. Generate bone cave
 	addLavaCaves();			// 14. Generate lava cave
 
+	addPyramid();			// 15. Generate pyramid dungeon underground
+
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
 	FastNoiseSIMD::FreeNoiseSet(stoneNoise);
@@ -1351,6 +1413,7 @@ void generateWorld
 	- block variations (when spawning) - DONE
 	- special structure - DONE
 
+	- structures refactoring - In Progress
 	- dungeons - In Progress
 	- procedural structures made of multiple pieces - In Progress
 */
