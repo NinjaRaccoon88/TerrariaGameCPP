@@ -379,6 +379,7 @@ void generateWorld
 				}
 			}
 		};
+	createStoneLayer(); // calling here just above all biom variables
 
 	// Ice Biom Variables
 	// pick a random start pos for the ice biom
@@ -454,10 +455,13 @@ void generateWorld
 	int pyramidHalfBase = 34; // half of 68 block wide base
 	int pyramidHeight = 34; // 34 blocks tall
 
+	// will be set after createStoneLayer runs
+	int pyramidBaseY = stoneHeights[pyramidMid] + getRandomInt(rng, 75, 150);
+
 	// keep repicking until pyramid doesn't overlap biomes or mountain
 	while ((pyramidMid > desertStart - 50 && pyramidMid < desertEnd + 50) ||
-		(pyramidMid > mountainStart - 50 && pyramidMid < mountainEnd + 50) ||
-		(pyramidMid > iceStart - 50 && pyramidMid < iceEnd + 50))
+		   (pyramidMid > mountainStart - 50 && pyramidMid < mountainEnd + 50) ||
+		   (pyramidMid > iceStart - 50 && pyramidMid < iceEnd + 50))
 	{
 		pyramidMid = getRandomInt(rng, 100, w - 100);
 	}
@@ -466,8 +470,6 @@ void generateWorld
 	auto addPyramid = [&]()
 		{
 			// ...
-
-			int pyramidBaseY = stoneHeights[pyramidMid] + 60; // will be set after createStoneLayer runs
 
 			for (int row = 0; row <= pyramidHeight; row++)
 			{
@@ -487,10 +489,33 @@ void generateWorld
 						b->type = Block::sandStone;
 					}
 				}
+			}
+		};
 
+	// generate the dungeon inside the Pyramid
+	auto addPyramidDungeon = [&]()
+		{
+			// ...
 
+			// starting positions - exact center of the pyramid
+			int corridorX = pyramidMid;
+			int corridorY = pyramidBaseY - pyramidHeight;
+
+			// starting direction - 1 = moving right, -1 = moving left
+			int dirX = 1;
+
+			// how many zig zag segments total - random between 4 and 8
+			int numSegments = getRandomInt(rng, 4, 8);
+
+			// how long each diagonal is in steps
+			int segmentLength = getRandomInt(rng, 15, 25);
+
+			for (int seg = 0; seg < numSegments; seg++)
+			{
+				// ...
 
 			}
+
 		};
 
 	// generates the Ice Biom
@@ -1199,7 +1224,8 @@ void generateWorld
 		};
 
 	// Calling lambda functions (finally LFG!)
-	createStoneLayer();		// 1. Build base terrain (must be first)
+	// createStoneLayer called just above all the biom variables
+	// createStoneLayer();	// 1. Build base terrain (must be first)
 	addDesert();			// 2. Replace blocks in desert area (generate desert biom)
 	addIceBiom();			// 3. Generate Ice Biom
 	addOneExtraMountain();  // 4. Raise terrain for mountain
