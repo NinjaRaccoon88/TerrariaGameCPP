@@ -100,7 +100,7 @@ void generateWorld
 	(
 		guardRoom.mapData,
 		guardRoom.w, guardRoom.h,
-		RESOURCES_PATH "structure/guardRoom.bin"
+		RESOURCES_PATH "structures/guardRoom.bin"
 	);
 
 	// Create two separate noise generators - for dirt and for stone layers
@@ -466,7 +466,7 @@ void generateWorld
 		pyramidMid = getRandomInt(rng, 100, w - 100);
 	}
 
-	// generate pyramid underground
+	// generate pyramid structure underground
 	auto addPyramid = [&]()
 		{
 			// ...
@@ -495,27 +495,89 @@ void generateWorld
 	// generate the dungeon inside the Pyramid
 	auto addPyramidDungeon = [&]()
 		{
-			// ...
-
-			// starting positions - exact center of the pyramid
+			// pyramid center X and center Y - not the top anymore
 			int corridorX = pyramidMid;
-			int corridorY = pyramidBaseY - pyramidHeight;
+			int corridorY = pyramidBaseY - pyramidHeight / 2; // FIXED: was - pyramidHeight (top)
 
-			// starting direction - 1 = moving right, -1 = moving left
 			int dirX = 1;
-
-			// how many zig zag segments total - random between 4 and 8
 			int numSegments = getRandomInt(rng, 4, 8);
+			int segmentLength = getRandomInt(rng, 8, 14); // shorter - we start mid not top so less room
 
-			// how long each diagonal is in steps
-			int segmentLength = getRandomInt(rng, 15, 25);
+			// helper - carves the same diamond/plus shape used throughout
+			auto carvePoint = [&](int x, int y)
+				{
+					for (int ox = -1; ox <= 1; ox++)
+						for (int oy = -1; oy <= 1; oy++)
+							if (ox * ox + oy * oy <= 1)
+							{
+								auto b = gameMap.getBlockSafe(x + ox, y + oy);
+								if (b) b->type = Block::air;
+							}
+				};
+
+			// helper - carves a flat horizontal corridor between two X positions at fixed Y
+			auto carveHorizontal = [&](int fromX, int toX, int y)
+				{
+					int startX = std::min(fromX, toX);
+					int endX = std::max(fromX, toX);
+					for (int x = startX; x <= endX; x++)
+						carvePoint(x, y);
+				};
+
+			// helper - carves a vertical shaft between two Y positions at fixed X
+			auto carveVertical = [&](int x, int fromY, int toY)
+				{
+					int startY = std::min(fromY, toY);
+					int endY = std::max(fromY, toY);
+					for (int y = startY; y <= endY; y++)
+						carvePoint(x, y);
+				};
 
 			for (int seg = 0; seg < numSegments; seg++)
 			{
-				// ...
+				for (int step = 0; step < segmentLength; step++)
+				{
+					corridorX += dirX;
+					corridorY += 1; // always heading downward
 
+					carvePoint(corridorX, corridorY);
+				}
+
+				// flip direction for next zig/zag
+				dirX = -dirX;
+
+				// 40% chance to branch a guard room off this turning point
+				if (getRandomChance(rng, 0.4) && guardRoom.w > 0)
+				{
+					// branch goes in the NEW direction (after flip) - creates a T-junction feel
+					int branchLength = 6;
+					int branchEndX = corridorX + dirX * branchLength;
+
+					// 1. carve the connecting corridor horizontally from turning point to room entrance
+					carveHorizontal(corridorX, branchEndX, corridorY);
+
+					// 2. paste room so it's centered on the end of the branch
+					Vector2 guardPos;
+					guardPos.x = branchEndX - guardRoom.w / 2.0f;
+					guardPos.y = corridorY - guardRoom.h / 2.0f; // vertically centered on corridor
+					guardRoom.pasteIntoMap(gameMap, guardPos);
+				}
 			}
 
+			// treasure room goes directly below wherever the zigzag ended
+			if (treasureRoom.w > 0)
+			{
+				int dropLength = 6; // short vertical shaft connecting zigzag end to treasure room
+
+				// 1. carve drop shaft straight down
+				carveVertical(corridorX, corridorY, corridorY + dropLength);
+
+				// 2. paste treasure room below the shaft, centered on the drop point
+				Vector2 treasurePos;
+				treasurePos.x = corridorX - treasureRoom.w / 2.0f;
+				treasurePos.y = corridorY + dropLength; // sits right below the shaft
+				treasureRoom.pasteIntoMap(gameMap, treasurePos);
+			}
 		};
 
 	// generates the Ice Biom
@@ -1413,6 +1475,7 @@ void generateWorld
 	addLavaCaves();			// 14. Generate lava cave
 
 	addPyramid();			// 15. Generate pyramid dungeon underground
+	addPyramidDungeon();
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);

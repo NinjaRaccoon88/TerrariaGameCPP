@@ -57,11 +57,12 @@ struct BlockSaveRepresentation3
 // current version of the file save system
 const int VERSION = 3;
 
-BlockSaveRepresentation2 toBlockRepresentation(Block b)
+BlockSaveRepresentation3 toBlockRepresentation(Block b)
 {
-	BlockSaveRepresentation2 rez;
+	BlockSaveRepresentation3 rez;
 	rez.type = b.type;
 	rez.durability = b.durability;
+	rez.variation = b.variation;
 	return rez;
 }
 
@@ -110,7 +111,7 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 
 	if (!f.is_open()) { return false; }
 
-	int readVersion = 0;
+	int readVersion = 3;
 
 	// read the version
 	f.read((char*)&readVersion, sizeof(readVersion));
