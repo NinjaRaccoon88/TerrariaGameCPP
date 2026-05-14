@@ -238,7 +238,10 @@ void generateWorld
 							int digY = y + oy;
 
 							auto b = gameMap.getBlockSafe(digX, digY);
-							if (b && digY > dirtHeights[digX] + 8) // never dig surfaces
+
+							int safeDigX = std::clamp(digX, 0, w - 1);
+
+							if (b && digY > dirtHeights[safeDigX] + 8) // never dig surfaces
 							{
 								b->type = Block::air;
 							}
@@ -452,19 +455,14 @@ void generateWorld
 
 	// Pyramid variables
 	int pyramidMid = getRandomInt(rng, 100, w - 100);
-	int pyramidHalfBase = 34; // half of 68 block wide base
-	int pyramidHeight = 34; // 34 blocks tall
+	int pyramidHalfBase = 68; // half of 68 block wide base, doubling
+	int pyramidHeight = 68; // 34 blocks tall, doubling
 
 	// will be set after createStoneLayer runs
-	int pyramidBaseY = stoneHeights[pyramidMid] + getRandomInt(rng, 75, 150);
+	int pyramidBaseY = stoneHeights[pyramidMid] + getRandomInt(rng, 150, 300);
 
-	// keep repicking until pyramid doesn't overlap biomes or mountain
-	while ((pyramidMid > desertStart - 50 && pyramidMid < desertEnd + 50) ||
-		   (pyramidMid > mountainStart - 50 && pyramidMid < mountainEnd + 50) ||
-		   (pyramidMid > iceStart - 50 && pyramidMid < iceEnd + 50))
-	{
-		pyramidMid = getRandomInt(rng, 100, w - 100);
-	}
+	// clamp so pyramid never goes outside the boundaries
+	pyramidBaseY = std::min(pyramidBaseY, h - pyramidHeight - 15);
 
 	// generate pyramid structure underground
 	auto addPyramid = [&]()
@@ -492,91 +490,91 @@ void generateWorld
 			}
 		};
 
-	// generate the dungeon inside the Pyramid
+	// generate the dungeon inside the pyramid
+	// carves rooms inside the pyramid and pastes pre-built structures
 	auto addPyramidDungeon = [&]()
 		{
-			// pyramid center X and center Y - not the top anymore
-			int corridorX = pyramidMid;
-			int corridorY = pyramidBaseY - pyramidHeight / 2; // FIXED: was - pyramidHeight (top)
+			// fixed room dimensions - all rooms are same size
+			const int roomW = 9;
+			const int roomH = 7;
 
-			int dirX = 1;
-			int numSegments = getRandomInt(rng, 4, 8);
-			int segmentLength = getRandomInt(rng, 8, 14); // shorter - we start mid not top so less room
+			// stores top-left corner of every room we placed
+			// used to prevent rooms from spawning on top of each other
+			std::vector<std::pair<int, int>> placedPositions;
 
-			// helper - carves the same diamond/plus shape used throughout
-			auto carvePoint = [&](int x, int y)
+			// checks if a room at x,y would overlap any already placed room
+			// +2 adds a small gap between rooms so they dont even touch at edges
+			auto overlaps = [&](int x, int y) -> bool
 				{
-					for (int ox = -1; ox <= 1; ox++)
-						for (int oy = -1; oy <= 1; oy++)
-							if (ox * ox + oy * oy <= 1)
-							{
-								auto b = gameMap.getBlockSafe(x + ox, y + oy);
-								if (b) b->type = Block::air;
-							}
+					for (auto& [px, py] : placedPositions)
+					{
+						// two rectangles overlap if they overlap on BOTH axes simultaneously
+						// checking X axis: candidate left < placed right AND candidate right > placed left
+						bool overlapX = x < px + roomW + 2 && x + roomW + 2 > px;
+						// checking Y axis: same logic vertically
+						bool overlapY = y < py + roomH + 2 && y + roomH + 2 > py;
+
+						// only real overlap if BOTH axes collide
+						if (overlapX && overlapY) return true;
+					}
+					return false; // no overlaps found - position is safe
 				};
 
-			// helper - carves a flat horizontal corridor between two X positions at fixed Y
-			auto carveHorizontal = [&](int fromX, int toX, int y)
+			// tries to paste a room structure at a random valid position inside the pyramid
+			// returns true if it succeeded, false if it couldn't find a valid spot
+			auto placeRoom = [&](Structure& room) -> bool
 				{
-					int startX = std::min(fromX, toX);
-					int endX = std::max(fromX, toX);
-					for (int x = startX; x <= endX; x++)
-						carvePoint(x, y);
+					// skip if the .bin file failed to load
+					if (room.w <= 0) return false;
+
+					// try up to 100 different random positions before giving up
+					for (int attempt = 0; attempt < 100; attempt++)
+					{
+						// pick a random X centered on pyramidMid
+						// offset randomly left or right by up to half the pyramid's base width
+						int roomX = pyramidMid - room.w / 2
+							+ getRandomInt(rng, -pyramidHalfBase / 2, pyramidHalfBase / 2);
+
+						// valid Y range is between the pyramid peak (+5 buffer) and the base (-5 buffer)
+						int yMin = pyramidBaseY - pyramidHeight + 5; // near the top of pyramid
+						int yMax = pyramidBaseY - room.h - 5;        // near the bottom of pyramid
+
+						// if pyramid is too small to fit the room at all - bail out immediately
+						if (yMax <= yMin) return false;
+
+						int roomY = getRandomInt(rng, yMin, yMax);
+
+						// clamp to map bounds so room never goes outside the world
+						roomX = std::clamp(roomX, 0, w - room.w - 1);
+						roomY = std::clamp(roomY, 0, h - room.h - 1);
+
+						// only paste if this position doesn't overlap any existing room
+						if (!overlaps(roomX, roomY))
+						{
+							Vector2 pos = { (float)roomX, (float)roomY };
+
+							// paste the structure's blocks into the game map at this position
+							room.pasteIntoMap(gameMap, pos);
+
+							// register this position so future rooms avoid it
+							placedPositions.push_back({ roomX, roomY });
+							return true; // success!
+						}
+						// if it overlapped - loop continues and tries another random position
+					}
+
+					return false; // failed after 100 attempts - room just doesn't get placed
 				};
 
-			// helper - carves a vertical shaft between two Y positions at fixed X
-			auto carveVertical = [&](int x, int fromY, int toY)
-				{
-					int startY = std::min(fromY, toY);
-					int endY = std::max(fromY, toY);
-					for (int y = startY; y <= endY; y++)
-						carvePoint(x, y);
-				};
+			// place exactly 1 treasure room - the main reward at the end of the dungeon
+			placeRoom(treasureRoom);
 
-			for (int seg = 0; seg < numSegments; seg++)
+			// place 2 to 4 guard rooms randomly inside the pyramid
+			// these are fake rooms to mislead the player before they find the treasure
+			int numGuardRooms = getRandomInt(rng, 2, 4);
+			for (int i = 0; i < numGuardRooms; i++)
 			{
-				for (int step = 0; step < segmentLength; step++)
-				{
-					corridorX += dirX;
-					corridorY += 1; // always heading downward
-
-					carvePoint(corridorX, corridorY);
-				}
-
-				// flip direction for next zig/zag
-				dirX = -dirX;
-
-				// 40% chance to branch a guard room off this turning point
-				if (getRandomChance(rng, 0.4) && guardRoom.w > 0)
-				{
-					// branch goes in the NEW direction (after flip) - creates a T-junction feel
-					int branchLength = 6;
-					int branchEndX = corridorX + dirX * branchLength;
-
-					// 1. carve the connecting corridor horizontally from turning point to room entrance
-					carveHorizontal(corridorX, branchEndX, corridorY);
-
-					// 2. paste room so it's centered on the end of the branch
-					Vector2 guardPos;
-					guardPos.x = branchEndX - guardRoom.w / 2.0f;
-					guardPos.y = corridorY - guardRoom.h / 2.0f; // vertically centered on corridor
-					guardRoom.pasteIntoMap(gameMap, guardPos);
-				}
-			}
-
-			// treasure room goes directly below wherever the zigzag ended
-			if (treasureRoom.w > 0)
-			{
-				int dropLength = 6; // short vertical shaft connecting zigzag end to treasure room
-
-				// 1. carve drop shaft straight down
-				carveVertical(corridorX, corridorY, corridorY + dropLength);
-
-				// 2. paste treasure room below the shaft, centered on the drop point
-				Vector2 treasurePos;
-				treasurePos.x = corridorX - treasureRoom.w / 2.0f;
-				treasurePos.y = corridorY + dropLength; // sits right below the shaft
-				treasureRoom.pasteIntoMap(gameMap, treasurePos);
+				placeRoom(guardRoom);
 			}
 		};
 
@@ -1501,10 +1499,9 @@ void generateWorld
 	- more natural custom caves - DONE
 	- block variations (when spawning) - DONE
 	- special structure - DONE
-
-	- structures refactoring - In Progress
-	- dungeons - In Progress
-	- procedural structures made of multiple pieces - In Progress
+	- structures refactoring - DONE
+	- dungeons - DONE
+	- procedural structures made of multiple pieces - DONE
 */
 
 /*

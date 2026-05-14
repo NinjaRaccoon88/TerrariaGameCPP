@@ -111,7 +111,7 @@ bool loadBlockDataToFile(std::vector<Block>& blocks, int& w, int& h, const char*
 
 	if (!f.is_open()) { return false; }
 
-	int readVersion = 3;
+	int readVersion = 0;
 
 	// read the version
 	f.read((char*)&readVersion, sizeof(readVersion));
