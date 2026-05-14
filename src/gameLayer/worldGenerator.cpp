@@ -1473,7 +1473,7 @@ void generateWorld
 	addLavaCaves();			// 14. Generate lava cave
 
 	addPyramid();			// 15. Generate pyramid dungeon underground
-	addPyramidDungeon();
+	addPyramidDungeon();	// 16. Generate the dungeon inside the pyramid
 
 	// IMPORTANT: must free manually since FastNoiseSIMD uses raw pointers, not smart pointers
 	FastNoiseSIMD::FreeNoiseSet(dirtNoise);
@@ -1505,6 +1505,6 @@ void generateWorld
 */
 
 /*
-	Roadmap:
-	empty
+	World Generator Roadmap:
+	- empty
 */
