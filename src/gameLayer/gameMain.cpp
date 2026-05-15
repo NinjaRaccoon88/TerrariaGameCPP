@@ -100,7 +100,6 @@ bool updateGame()
 	if (IsKeyDown(KEY_RIGHT)) gameData.camera.target.x += CAMERA_SPEED * deltaTime;
 	if (IsKeyDown(KEY_UP)) gameData.camera.target.y -= CAMERA_SPEED * deltaTime;
 	if (IsKeyDown(KEY_DOWN)) gameData.camera.target.y += CAMERA_SPEED * deltaTime;
-
 #pragma endregion
 
 	// Converts mouse position from screen pixles to world coordinates
@@ -343,7 +342,7 @@ bool updateGame()
 			}
 		}
 	};
-	// TODO: When holding CTRL show the current block you are about to place           DONE BTW
+	// TODO: When holding CTRL show the current block you are about to place  DONE BTW
 	// else
 	// draw selected block
 
@@ -404,6 +403,21 @@ bool updateGame()
 		// draw outline rectangle with slight transperency
 		DrawRectangleLinesEx(rect, 0.1f, {20, 101, 250, 145});
 	}
+
+	// Drawing the player.png on the screen at the camera location
+	DrawTexturePro
+	(
+		assetManager.player, // texture of a player
+		{ 0,0, (float)assetManager.player.width, (float)assetManager.player.height }, // source
+		{
+			gameData.camera.target.x - 0.5f, // centered on camera view
+			gameData.camera.target.y - 1.0f, // slightly above so feet align with the floor
+			1, 2 // world unit size - 1 block wide and 2 blocks tall
+		},
+		{ 0,0 }, // no pivot offset
+		0.0f, // no rotation
+		WHITE
+	);
 
 	EndMode2D(); // stop camera rendering
 

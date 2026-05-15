@@ -11,5 +11,7 @@ struct AssetManager
 
 	Texture2D walls = {}; // declaring wall textures and init to empty values
 
+	Texture2D player = {}; // declaring the player sprite
+
 	void loadAll();
 };

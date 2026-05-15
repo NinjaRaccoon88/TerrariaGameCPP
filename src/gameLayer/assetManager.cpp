@@ -13,4 +13,6 @@ void AssetManager::loadAll()
 
 	// Importing texture with wall variants
 	walls = LoadTexture(RESOURCES_PATH "texturesWithBackgroundVersion.png");
+
+	player = LoadTexture(RESOURCES_PATH "player.png");
 }
